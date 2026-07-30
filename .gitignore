@@ -9,4 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Local environment variables and secrets
+.env
+.env.*
+!.env.example
 rules.md
+rules2.md

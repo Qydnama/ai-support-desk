@@ -1,21 +1,101 @@
-from collections.abc import Iterator
-from uuid import UUID
+import asyncio
+from collections.abc import AsyncIterator, Iterator
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import delete, text
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
+from dependencies.database import get_session
 from main import app
-from storage.users import users_by_id
+from models.base import Base
+from models.users import User
+from settings import settings
 
 
-@pytest.fixture
-def client() -> Iterator[TestClient]:
-    users_by_id.clear()
+TEST_SCHEMA = f"test_{uuid4().hex}"
 
+admin_engine = create_async_engine(
+    settings.database_url,
+    poolclass=NullPool,
+)
+
+test_engine = create_async_engine(
+    settings.database_url,
+    poolclass=NullPool,
+    connect_args={
+        "server_settings": {
+            "search_path": TEST_SCHEMA,
+        },
+    },
+)
+
+session_factory_for_tests = async_sessionmaker(
+    test_engine,
+    expire_on_commit=False,
+)
+
+
+async def get_test_session() -> AsyncIterator[AsyncSession]:
+    async with session_factory_for_tests() as session:
+        yield session
+
+
+async def create_test_schema() -> None:
+    async with admin_engine.begin() as connection:
+        await connection.execute(
+            text(f'CREATE SCHEMA "{TEST_SCHEMA}"')
+        )
+
+    async with test_engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+
+async def drop_test_schema() -> None:
+    async with admin_engine.begin() as connection:
+        await connection.execute(
+            text(f'DROP SCHEMA IF EXISTS "{TEST_SCHEMA}" CASCADE')
+        )
+
+    await test_engine.dispose()
+    await admin_engine.dispose()
+
+
+async def clear_users() -> None:
+    async with test_engine.begin() as connection:
+        await connection.execute(delete(User))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def test_database() -> Iterator[None]:
+    asyncio.run(create_test_schema())
+    app.dependency_overrides[get_session] = get_test_session
+
+    yield
+
+    app.dependency_overrides.clear()
+    asyncio.run(drop_test_schema())
+
+
+@pytest.fixture(autouse=True)
+def clean_database(test_database: None) -> Iterator[None]:
+    asyncio.run(clear_users())
+
+    yield
+
+    asyncio.run(clear_users())
+
+
+@pytest.fixture(scope="session")
+def client(test_database: None) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
-
-    users_by_id.clear()
 
 
 def test_health_check(client: TestClient) -> None:
@@ -53,21 +133,47 @@ def test_create_and_get_user(client: TestClient) -> None:
     assert get_response.json() == created_user
 
 
+def test_list_users(client: TestClient) -> None:
+    first_user = client.post(
+        "/users",
+        json={
+            "name": "Alice",
+            "email": "alice@example.com",
+        },
+    ).json()
+    second_user = client.post(
+        "/users",
+        json={
+            "name": "Bob",
+            "email": "bob@example.com",
+        },
+    ).json()
+
+    response = client.get("/users")
+
+    assert response.status_code == 200
+    assert {user["id"] for user in response.json()} == {
+        first_user["id"],
+        second_user["id"],
+    }
+
+
 def test_create_user_with_existing_email_returns_conflict(
     client: TestClient,
 ) -> None:
-    user_data = {
-        "name": "Alice",
-        "email": "alice@example.com",
-    }
-
     first_response = client.post(
         "/users",
-        json=user_data,
+        json={
+            "name": "Alice",
+            "email": "alice@example.com",
+        },
     )
     second_response = client.post(
         "/users",
-        json=user_data,
+        json={
+            "name": "Another Alice",
+            "email": "ALICE@example.com",
+        },
     )
 
     assert first_response.status_code == 201
@@ -90,6 +196,12 @@ def test_get_missing_user_returns_not_found(
         "code": "user_not_found",
         "message": "User not found",
     }
+
+
+def test_get_user_rejects_invalid_uuid(client: TestClient) -> None:
+    response = client.get("/users/not-a-uuid")
+
+    assert response.status_code == 422
 
 
 def test_create_user_rejects_invalid_data(

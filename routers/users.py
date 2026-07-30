@@ -1,12 +1,14 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Response, status
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
+from dependencies.database import SessionDep
 from dependencies.pagination import PaginationDep
-from dependencies.users import ExistingUserDep
-from exception import UserEmailAlreadyExistsError
+from exception import UserEmailAlreadyExistsError, UserNotFoundError
+from models.users import User
 from schemas.users import UserCreate, UserRead, UserReplace, UserUpdate
-from storage.users import is_email_taken, users_by_id
 
 router = APIRouter(
     prefix="/users",
@@ -21,12 +23,18 @@ router = APIRouter(
 )
 async def list_users(
     pagination: PaginationDep,
+    session: SessionDep,
 ) -> list[UserRead]:
-    users = list(users_by_id.values())
+    statement = (
+        select(User)
+        .order_by(User.id)
+        .offset(pagination.offset)
+        .limit(pagination.limit)
+    )
 
-    return users[
-        pagination.offset : pagination.offset + pagination.limit
-    ]
+    users = await session.scalars(statement)
+
+    return list(users)
 
 
 @router.get(
@@ -34,8 +42,16 @@ async def list_users(
     status_code=status.HTTP_200_OK,
     summary="Get a user",
 )
-async def get_user(existing_user: ExistingUserDep) -> UserRead:
-    return existing_user
+async def get_user(
+    user_id: UUID,
+    session: SessionDep,
+) -> UserRead:
+    user = await session.get(User, user_id)
+
+    if user is None:
+        raise UserNotFoundError()
+
+    return UserRead.model_validate(user)
 
 
 @router.put(
@@ -44,24 +60,25 @@ async def get_user(existing_user: ExistingUserDep) -> UserRead:
     summary="Replace a user",
 )
 async def replace_user(
+    user_id: UUID,
     replacement: UserReplace,
-    existing_user: ExistingUserDep,
+    session: SessionDep,
 ) -> UserRead:
+    user = await session.get(User, user_id)
 
-    if is_email_taken(
-        replacement.email,
-        excluding_user_id=existing_user.id,
-    ):
-        raise UserEmailAlreadyExistsError()
+    if user is None:
+        raise UserNotFoundError()
 
-    replaced_user = UserRead(
-        id=existing_user.id,
-        **replacement.model_dump(),
-    )
+    user.name = replacement.name
+    user.email = replacement.email
 
-    users_by_id[existing_user.id] = replaced_user
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise UserEmailAlreadyExistsError() from exc
 
-    return replaced_user
+    return UserRead.model_validate(user)
 
 
 @router.patch(
@@ -70,27 +87,30 @@ async def replace_user(
     summary="Update a user",
 )
 async def update_user(
-    existing_user: ExistingUserDep,
+    user_id: UUID,
     update: UserUpdate,
+    session: SessionDep,
 ) -> UserRead:
+    user = await session.get(User, user_id)
+
+    if user is None:
+        raise UserNotFoundError()
 
     update_data = update.model_dump(exclude_unset=True)
 
+    if "name" in update_data:
+        user.name = update_data["name"]
+
     if "email" in update_data:
-        updated_email = update_data["email"]
+        user.email = update_data["email"]
 
-        if is_email_taken(
-            updated_email,
-            excluding_user_id=existing_user.id,
-        ):
-            raise UserEmailAlreadyExistsError()
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise UserEmailAlreadyExistsError() from exc
 
-    merged_data = existing_user.model_dump() | update_data
-    updated_user = UserRead.model_validate(merged_data)
-
-    users_by_id[existing_user.id] = updated_user
-
-    return updated_user
+    return UserRead.model_validate(user)
 
 
 @router.delete(
@@ -98,8 +118,17 @@ async def update_user(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a user",
 )
-async def delete_user(existing_user: ExistingUserDep) -> Response:
-    del users_by_id[existing_user.id]
+async def delete_user(
+    user_id: UUID,
+    session: SessionDep,
+) -> Response:
+    user = await session.get(User, user_id)
+
+    if user is None:
+        raise UserNotFoundError()
+
+    await session.delete(user)
+    await session.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -112,16 +141,21 @@ async def delete_user(existing_user: ExistingUserDep) -> Response:
 async def create_user(
     user: UserCreate,
     response: Response,
+    session: SessionDep,
 ) -> UserRead:
-    if is_email_taken(user.email):
-        raise UserEmailAlreadyExistsError()
-
-    created_user = UserRead(
+    created_user = User(
         id=uuid4(),
         **user.model_dump(),
     )
 
-    users_by_id[created_user.id] = created_user
+    session.add(created_user)
+
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise UserEmailAlreadyExistsError() from exc
+
     response.headers["Location"] = f"/users/{created_user.id}"
 
-    return created_user
+    return UserRead.model_validate(created_user)
