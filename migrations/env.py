@@ -6,6 +6,8 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+import models.organization_members
+import models.organizations
 import models.users
 from models.base import Base
 from settings import settings

@@ -13,5 +13,4 @@ wheels/
 .env
 .env.*
 !.env.example
-rules.md
-rules2.md
+rules*.md

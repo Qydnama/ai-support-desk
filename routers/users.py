@@ -1,12 +1,15 @@
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from fastapi import APIRouter, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from database_errors import is_user_email_unique_violation
 from dependencies.database import SessionDep
 from dependencies.pagination import PaginationDep
-from exception import UserEmailAlreadyExistsError, UserNotFoundError
+from dependencies.users import ExistingUserDep
+from exception import UserEmailAlreadyExistsError
 from models.users import User
 from schemas.users import UserCreate, UserRead, UserReplace, UserUpdate
 
@@ -27,6 +30,7 @@ async def list_users(
 ) -> list[UserRead]:
     statement = (
         select(User)
+        .where(User.deleted_at.is_(None))
         .order_by(User.id)
         .offset(pagination.offset)
         .limit(pagination.limit)
@@ -43,15 +47,9 @@ async def list_users(
     summary="Get a user",
 )
 async def get_user(
-    user_id: UUID,
-    session: SessionDep,
+    existing_user: ExistingUserDep,
 ) -> UserRead:
-    user = await session.get(User, user_id)
-
-    if user is None:
-        raise UserNotFoundError()
-
-    return UserRead.model_validate(user)
+    return UserRead.model_validate(existing_user)
 
 
 @router.put(
@@ -60,25 +58,24 @@ async def get_user(
     summary="Replace a user",
 )
 async def replace_user(
-    user_id: UUID,
+    existing_user: ExistingUserDep,
     replacement: UserReplace,
     session: SessionDep,
 ) -> UserRead:
-    user = await session.get(User, user_id)
-
-    if user is None:
-        raise UserNotFoundError()
-
-    user.name = replacement.name
-    user.email = replacement.email
+    existing_user.name = replacement.name
+    existing_user.email = replacement.email
 
     try:
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise UserEmailAlreadyExistsError() from exc
 
-    return UserRead.model_validate(user)
+        if is_user_email_unique_violation(exc):
+            raise UserEmailAlreadyExistsError() from exc
+
+        raise
+
+    return UserRead.model_validate(existing_user)
 
 
 @router.patch(
@@ -87,30 +84,30 @@ async def replace_user(
     summary="Update a user",
 )
 async def update_user(
-    user_id: UUID,
     update: UserUpdate,
+    existing_user: ExistingUserDep,
     session: SessionDep,
 ) -> UserRead:
-    user = await session.get(User, user_id)
-
-    if user is None:
-        raise UserNotFoundError()
-
     update_data = update.model_dump(exclude_unset=True)
 
     if "name" in update_data:
-        user.name = update_data["name"]
+        existing_user.name = update_data["name"]
 
     if "email" in update_data:
-        user.email = update_data["email"]
+        existing_user.email = update_data["email"]
 
     try:
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise UserEmailAlreadyExistsError() from exc
 
-    return UserRead.model_validate(user)
+        if is_user_email_unique_violation(exc):
+            raise UserEmailAlreadyExistsError() from exc
+
+        raise
+
+    return UserRead.model_validate(existing_user)
+
 
 
 @router.delete(
@@ -119,15 +116,11 @@ async def update_user(
     summary="Delete a user",
 )
 async def delete_user(
-    user_id: UUID,
+    existing_user: ExistingUserDep,
     session: SessionDep,
 ) -> Response:
-    user = await session.get(User, user_id)
+    existing_user.deleted_at = datetime.now(UTC)
 
-    if user is None:
-        raise UserNotFoundError()
-
-    await session.delete(user)
     await session.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -154,7 +147,11 @@ async def create_user(
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise UserEmailAlreadyExistsError() from exc
+
+        if is_user_email_unique_violation(exc):
+            raise UserEmailAlreadyExistsError() from exc
+
+        raise
 
     response.headers["Location"] = f"/users/{created_user.id}"
 

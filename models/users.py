@@ -1,9 +1,21 @@
+from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Index, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Index,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from models.base import Base
+
+if TYPE_CHECKING:
+    from models.organization_members import OrganizationMember
 
 
 class User(Base):
@@ -19,6 +31,16 @@ class User(Base):
     email: Mapped[str] = mapped_column(
         Text,
         nullable=False,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    organization_memberships: Mapped[list[OrganizationMember]] = relationship(
+        back_populates="user",
+        passive_deletes="all",
+        lazy="raise",
     )
 
     __table_args__ = (

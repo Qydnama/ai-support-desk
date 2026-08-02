@@ -1,101 +1,9 @@
-import asyncio
-from collections.abc import AsyncIterator, Iterator
-from uuid import UUID, uuid4
+from collections.abc import Callable
+from uuid import UUID
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, text
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.pool import NullPool
 
-from dependencies.database import get_session
-from main import app
-from models.base import Base
 from models.users import User
-from settings import settings
-
-
-TEST_SCHEMA = f"test_{uuid4().hex}"
-
-admin_engine = create_async_engine(
-    settings.database_url,
-    poolclass=NullPool,
-)
-
-test_engine = create_async_engine(
-    settings.database_url,
-    poolclass=NullPool,
-    connect_args={
-        "server_settings": {
-            "search_path": TEST_SCHEMA,
-        },
-    },
-)
-
-session_factory_for_tests = async_sessionmaker(
-    test_engine,
-    expire_on_commit=False,
-)
-
-
-async def get_test_session() -> AsyncIterator[AsyncSession]:
-    async with session_factory_for_tests() as session:
-        yield session
-
-
-async def create_test_schema() -> None:
-    async with admin_engine.begin() as connection:
-        await connection.execute(
-            text(f'CREATE SCHEMA "{TEST_SCHEMA}"')
-        )
-
-    async with test_engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-
-
-async def drop_test_schema() -> None:
-    async with admin_engine.begin() as connection:
-        await connection.execute(
-            text(f'DROP SCHEMA IF EXISTS "{TEST_SCHEMA}" CASCADE')
-        )
-
-    await test_engine.dispose()
-    await admin_engine.dispose()
-
-
-async def clear_users() -> None:
-    async with test_engine.begin() as connection:
-        await connection.execute(delete(User))
-
-
-@pytest.fixture(scope="session", autouse=True)
-def test_database() -> Iterator[None]:
-    asyncio.run(create_test_schema())
-    app.dependency_overrides[get_session] = get_test_session
-
-    yield
-
-    app.dependency_overrides.clear()
-    asyncio.run(drop_test_schema())
-
-
-@pytest.fixture(autouse=True)
-def clean_database(test_database: None) -> Iterator[None]:
-    asyncio.run(clear_users())
-
-    yield
-
-    asyncio.run(clear_users())
-
-
-@pytest.fixture(scope="session")
-def client(test_database: None) -> Iterator[TestClient]:
-    with TestClient(app) as test_client:
-        yield test_client
 
 
 def test_health_check(client: TestClient) -> None:
@@ -219,7 +127,10 @@ def test_create_user_rejects_invalid_data(
     assert response.status_code == 422
 
 
-def test_user_lifecycle(client: TestClient) -> None:
+def test_user_lifecycle(
+    client: TestClient,
+    read_stored_user: Callable[[UUID], User | None],
+) -> None:
     create_response = client.post(
         "/users",
         json={
@@ -269,3 +180,17 @@ def test_user_lifecycle(client: TestClient) -> None:
     get_response = client.get(f"/users/{user_id}")
 
     assert get_response.status_code == 404
+
+    list_response = client.get("/users")
+
+    assert list_response.status_code == 200
+    assert list_response.json() == []
+
+    stored_user = read_stored_user(
+        UUID(user_id),
+    )
+
+    assert stored_user is not None
+    assert stored_user.deleted_at is not None
+    assert stored_user.name == "Charlie"
+    assert stored_user.email == "bob@example.com"

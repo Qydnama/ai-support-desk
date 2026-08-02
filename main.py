@@ -1,11 +1,14 @@
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from time import perf_counter
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from database import engine
 from exception import AppError
+from routers.organizations import router as organizations_router
 from routers.users import router as users_router
 
 ALLOWED_ORIGINS = [
@@ -13,9 +16,16 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+    yield
+
+    await engine.dispose()
+
 app = FastAPI(
     title="CRUD API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -75,4 +85,5 @@ async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
+app.include_router(organizations_router)
 app.include_router(users_router)
