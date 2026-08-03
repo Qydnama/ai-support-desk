@@ -1,30 +1,19 @@
-from uuid import uuid4
-
 from fastapi import APIRouter, Response, status
-from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload
 
-from database_errors import (
-    is_organization_member_primary_key_violation,
-    is_organization_slug_unique_violation,
-)
 from dependencies.database import SessionDep
 from dependencies.organization_members import (
     ExistingOrganizationMemberDep,
 )
 from dependencies.organizations import (
     ExistingOrganizationDep,
-    OrganizationFiltersDep,
+    OrganizationFiltersQuery,
 )
 from dependencies.pagination import PaginationDep
 from dependencies.users import ExistingUserDep
-from exception import (
-    OrganizationMemberAlreadyExistsError,
-    OrganizationSlugAlreadyExistsError,
+from repositories import (
+    organization_members as organization_member_repository,
 )
-from models.organization_members import OrganizationMember
-from models.organizations import Organization
+from repositories import organizations as organization_repository
 from schemas.organization_members import (
     OrganizationMemberListItem,
     OrganizationMemberRead,
@@ -35,6 +24,10 @@ from schemas.organizations import (
     OrganizationSummaryRead,
     OrganizationUpdate,
 )
+from services import (
+    organization_members as organization_member_service,
+)
+from services import organizations as organization_service
 
 router = APIRouter(
     prefix="/organizations",
@@ -48,63 +41,19 @@ router = APIRouter(
     summary="List organizations",
 )
 async def list_organizations(
-    filters: OrganizationFiltersDep,
+    filters: OrganizationFiltersQuery,
     pagination: PaginationDep,
     session: SessionDep,
 ) -> list[OrganizationSummaryRead]:
-    member_count = func.count(
-        OrganizationMember.user_id,
-    ).label("member_count")
-
-    statement = (
-        select(
-            Organization,
-            member_count,
-        )
-        .outerjoin(
-            OrganizationMember,
-            OrganizationMember.organization_id
-            == Organization.id,
-        )
+    rows = await organization_repository.list_summaries(
+        session=session,
+        name=filters.name,
+        slug=filters.slug,
+        member_user_id=filters.member_user_id,
+        min_members=filters.min_members,
+        limit=pagination.limit,
+        offset=pagination.offset,
     )
-
-    if filters.name is not None:
-        statement = statement.where(
-            Organization.name == filters.name,
-        )
-
-    if filters.slug is not None:
-        statement = statement.where(
-            Organization.slug == filters.slug,
-        )
-
-    if filters.member_user_id is not None:
-        statement = statement.where(
-            Organization.memberships.any(
-                OrganizationMember.user_id
-                == filters.member_user_id,
-            ),
-        )
-
-    statement = statement.group_by(
-        Organization.id,
-        Organization.name,
-        Organization.slug,
-    )
-
-    if filters.min_members is not None:
-        statement = statement.having(
-            member_count >= filters.min_members,
-        )
-
-    statement = (
-        statement
-        .order_by(Organization.id)
-        .offset(pagination.offset)
-        .limit(pagination.limit)
-    )
-
-    rows = await session.execute(statement)
 
     return [
         OrganizationSummaryRead(
@@ -140,20 +89,14 @@ async def list_organization_members(
     pagination: PaginationDep,
     session: SessionDep,
 ) -> list[OrganizationMemberListItem]:
-    statement = (
-        select(OrganizationMember)
-        .options(
-            joinedload(OrganizationMember.user),
+    memberships = (
+        await organization_member_repository.list_by_organization(
+            session=session,
+            organization_id=existing_organization.id,
+            limit=pagination.limit,
+            offset=pagination.offset,
         )
-        .where(
-            OrganizationMember.organization_id == existing_organization.id,
-        )
-        .order_by(OrganizationMember.user_id)
-        .offset(pagination.offset)
-        .limit(pagination.limit)
     )
-
-    memberships = await session.scalars(statement)
 
     return [
         OrganizationMemberListItem(
@@ -179,24 +122,16 @@ async def create_organization(
     response: Response,
     session: SessionDep,
 ) -> OrganizationRead:
-    created_organization = Organization(
-        id=uuid4(),
-        **organization.model_dump(),
+    created_organization = (
+        await organization_service.create_organization(
+            session=session,
+            data=organization,
+        )
     )
 
-    session.add(created_organization)
-
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-
-        if is_organization_slug_unique_violation(exc):
-            raise OrganizationSlugAlreadyExistsError() from exc
-
-        raise
-
-    response.headers["Location"] = f"/organizations/{created_organization.id}"
+    response.headers["Location"] = (
+        f"/organizations/{created_organization.id}"
+    )
 
     return OrganizationRead.model_validate(
         created_organization,
@@ -214,25 +149,15 @@ async def add_organization_member(
     response: Response,
     session: SessionDep,
 ) -> OrganizationMemberRead:
-    membership = OrganizationMember(
-        organization_id=existing_organization.id,
-        user_id=existing_user.id,
+    membership = await organization_member_service.add_member(
+        session=session,
+        organization=existing_organization,
+        user=existing_user,
     )
 
-    session.add(membership)
-
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-
-        if is_organization_member_primary_key_violation(exc):
-            raise OrganizationMemberAlreadyExistsError() from exc
-
-        raise
-
     response.headers["Location"] = (
-        f"/organizations/{existing_organization.id}/members/{existing_user.id}"
+        f"/organizations/{existing_organization.id}"
+        f"/members/{existing_user.id}"
     )
 
     return OrganizationMemberRead.model_validate(
@@ -250,28 +175,16 @@ async def update_organization(
     existing_organization: ExistingOrganizationDep,
     session: SessionDep,
 ) -> OrganizationRead:
-    update_data = update.model_dump(
-        exclude_unset=True,
+    updated_organization = (
+        await organization_service.update_organization(
+            session=session,
+            organization=existing_organization,
+            data=update,
+        )
     )
 
-    if "name" in update_data:
-        existing_organization.name = update_data["name"]
-
-    if "slug" in update_data:
-        existing_organization.slug = update_data["slug"]
-
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-
-        if is_organization_slug_unique_violation(exc):
-            raise OrganizationSlugAlreadyExistsError() from exc
-
-        raise
-
     return OrganizationRead.model_validate(
-        existing_organization,
+        updated_organization,
     )
 
 
@@ -284,8 +197,10 @@ async def delete_organization(
     existing_organization: ExistingOrganizationDep,
     session: SessionDep,
 ) -> Response:
-    await session.delete(existing_organization)
-    await session.commit()
+    await organization_service.delete_organization(
+        session=session,
+        organization=existing_organization,
+    )
 
     return Response(
         status_code=status.HTTP_204_NO_CONTENT,
@@ -301,8 +216,10 @@ async def remove_organization_member(
     existing_membership: ExistingOrganizationMemberDep,
     session: SessionDep,
 ) -> Response:
-    await session.delete(existing_membership)
-    await session.commit()
+    await organization_member_service.remove_member(
+        session=session,
+        membership=existing_membership,
+    )
 
     return Response(
         status_code=status.HTTP_204_NO_CONTENT,

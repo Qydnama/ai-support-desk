@@ -15,6 +15,9 @@ from sqlalchemy.pool import NullPool
 from dependencies.database import get_session
 from main import app
 from models.base import Base
+from models.contacts import Contact
+from models.conversations import Conversation
+from models.messages import Message
 from models.organization_members import OrganizationMember
 from models.organizations import Organization
 from models.users import User
@@ -74,6 +77,15 @@ async def drop_test_schema() -> None:
 
 async def clear_database() -> None:
     async with test_engine.begin() as connection:
+        await connection.execute(
+            delete(Message),
+        )
+        await connection.execute(
+            delete(Conversation),
+        )
+        await connection.execute(
+            delete(Contact),
+        )
         await connection.execute(
             delete(OrganizationMember),
         )

@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Index,
     String,
     Text,
@@ -17,14 +18,20 @@ from models.base import Base
 if TYPE_CHECKING:
     from models.conversations import Conversation
     from models.messages import Message
-    from models.organization_members import OrganizationMember
+    from models.organizations import Organization
 
 
-class User(Base):
-    __tablename__ = "users"
+class Contact(Base):
+    __tablename__ = "contacts"
 
-    id: Mapped[UUID] = mapped_column(
-        primary_key=True,
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    organization_id: Mapped[UUID] = mapped_column(
+        ForeignKey(
+            "organizations.id",
+            name="fk_contacts_organization_id_organizations",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
     )
     name: Mapped[str] = mapped_column(
         String(100),
@@ -34,27 +41,27 @@ class User(Base):
         Text,
         nullable=False,
     )
-    password_hash: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    organization_memberships: Mapped[list[OrganizationMember]] = relationship(
-        back_populates="user",
-        passive_deletes="all",
+    organization: Mapped[Organization] = relationship(
+        back_populates="contacts",
         lazy="raise",
     )
-    assigned_conversations: Mapped[list[Conversation]] = relationship(
-        back_populates="assigned_user",
+    conversations: Mapped[list[Conversation]] = relationship(
+        back_populates="contact",
         passive_deletes="all",
         lazy="raise",
     )
     authored_messages: Mapped[list[Message]] = relationship(
-        back_populates="author_user",
+        back_populates="author_contact",
         passive_deletes="all",
         lazy="raise",
     )
@@ -62,10 +69,11 @@ class User(Base):
     __table_args__ = (
         CheckConstraint(
             "name = btrim(name) AND char_length(name) >= 1",
-            name="ck_users_name_valid",
+            name="ck_contacts_name_valid",
         ),
         Index(
-            "uq_users_email_ci",
+            "uq_contacts_organization_email_ci",
+            organization_id,
             func.lower(email),
             unique=True,
         ),

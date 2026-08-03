@@ -2,11 +2,11 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Query
-from sqlalchemy import select
 
+from core.exceptions import OrganizationNotFoundError
 from dependencies.database import SessionDep
-from exception import OrganizationNotFoundError
 from models.organizations import Organization
+from repositories import organizations as organization_repository
 from schemas.organizations import OrganizationFilters
 
 
@@ -14,11 +14,10 @@ async def get_existing_organization(
     organization_id: UUID,
     session: SessionDep,
 ) -> Organization:
-    statement = select(Organization).where(
-        Organization.id == organization_id,
+    organization = await organization_repository.get_by_id(
+        session=session,
+        organization_id=organization_id,
     )
-
-    organization = await session.scalar(statement)
 
     if organization is None:
         raise OrganizationNotFoundError()
@@ -31,7 +30,7 @@ ExistingOrganizationDep = Annotated[
     Depends(get_existing_organization),
 ]
 
-OrganizationFiltersDep = Annotated[
+OrganizationFiltersQuery = Annotated[
     OrganizationFilters,
     Query(),
 ]

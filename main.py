@@ -4,10 +4,13 @@ from time import perf_counter
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
+from api.exception_handlers import app_error_handler
+from core.exceptions import AppError
 from database import engine
-from exception import AppError
+from routers.auth import router as auth_router
+from routers.contacts import router as contacts_router
+from routers.conversations import router as conversations_router
 from routers.organizations import router as organizations_router
 from routers.users import router as users_router
 
@@ -27,6 +30,13 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+app.add_exception_handler(
+    AppError,
+    app_error_handler,
+)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,6 +58,7 @@ app.add_middleware(
     ],
 )
 
+
 @app.middleware("http")
 async def add_process_time_header(
     request: Request,
@@ -62,18 +73,6 @@ async def add_process_time_header(
 
     return response
 
-@app.exception_handler(AppError)
-async def app_error_handler(
-    _request: Request,
-    exc: AppError,
-) -> JSONResponse:
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "code": exc.code,
-            "message": exc.message,
-        },
-    )
 
 @app.get(
     "/health",
@@ -85,5 +84,8 @@ async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
+app.include_router(auth_router)
+app.include_router(contacts_router)
+app.include_router(conversations_router)
 app.include_router(organizations_router)
 app.include_router(users_router)

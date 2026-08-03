@@ -2,23 +2,21 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends
-from sqlalchemy import select
 
+from core.exceptions import UserNotFoundError
 from dependencies.database import SessionDep
-from exception import UserNotFoundError
 from models.users import User
+from repositories import users as user_repository
 
 
 async def get_existing_user(
     user_id: UUID,
     session: SessionDep,
 ) -> User:
-    statement = select(User).where(
-        User.id == user_id,
-        User.deleted_at.is_(None),
+    user = await user_repository.get_active_by_id(
+        session=session,
+        user_id=user_id,
     )
-
-    user = await session.scalar(statement)
 
     if user is None:
         raise UserNotFoundError()

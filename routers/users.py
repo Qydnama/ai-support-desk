@@ -1,17 +1,16 @@
-from datetime import UTC, datetime
-from uuid import uuid4
-
 from fastapi import APIRouter, Response, status
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
-from database_errors import is_user_email_unique_violation
 from dependencies.database import SessionDep
 from dependencies.pagination import PaginationDep
 from dependencies.users import ExistingUserDep
-from exception import UserEmailAlreadyExistsError
-from models.users import User
-from schemas.users import UserCreate, UserRead, UserReplace, UserUpdate
+from repositories import users as user_repository
+from schemas.users import (
+    UserCreate,
+    UserRead,
+    UserReplace,
+    UserUpdate,
+)
+from services import users as user_service
 
 router = APIRouter(
     prefix="/users",
@@ -28,17 +27,16 @@ async def list_users(
     pagination: PaginationDep,
     session: SessionDep,
 ) -> list[UserRead]:
-    statement = (
-        select(User)
-        .where(User.deleted_at.is_(None))
-        .order_by(User.id)
-        .offset(pagination.offset)
-        .limit(pagination.limit)
+    users = await user_repository.list_active(
+        session=session,
+        limit=pagination.limit,
+        offset=pagination.offset,
     )
 
-    users = await session.scalars(statement)
-
-    return list(users)
+    return [
+        UserRead.model_validate(user)
+        for user in users
+    ]
 
 
 @router.get(
@@ -62,20 +60,13 @@ async def replace_user(
     replacement: UserReplace,
     session: SessionDep,
 ) -> UserRead:
-    existing_user.name = replacement.name
-    existing_user.email = replacement.email
+    replaced_user = await user_service.replace_user(
+        session=session,
+        user=existing_user,
+        data=replacement,
+    )
 
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-
-        if is_user_email_unique_violation(exc):
-            raise UserEmailAlreadyExistsError() from exc
-
-        raise
-
-    return UserRead.model_validate(existing_user)
+    return UserRead.model_validate(replaced_user)
 
 
 @router.patch(
@@ -88,26 +79,13 @@ async def update_user(
     existing_user: ExistingUserDep,
     session: SessionDep,
 ) -> UserRead:
-    update_data = update.model_dump(exclude_unset=True)
+    updated_user = await user_service.update_user(
+        session=session,
+        user=existing_user,
+        data=update,
+    )
 
-    if "name" in update_data:
-        existing_user.name = update_data["name"]
-
-    if "email" in update_data:
-        existing_user.email = update_data["email"]
-
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-
-        if is_user_email_unique_violation(exc):
-            raise UserEmailAlreadyExistsError() from exc
-
-        raise
-
-    return UserRead.model_validate(existing_user)
-
+    return UserRead.model_validate(updated_user)
 
 
 @router.delete(
@@ -119,11 +97,14 @@ async def delete_user(
     existing_user: ExistingUserDep,
     session: SessionDep,
 ) -> Response:
-    existing_user.deleted_at = datetime.now(UTC)
+    await user_service.delete_user(
+        session=session,
+        user=existing_user,
+    )
 
-    await session.commit()
-
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
 
 
 @router.post(
@@ -136,23 +117,13 @@ async def create_user(
     response: Response,
     session: SessionDep,
 ) -> UserRead:
-    created_user = User(
-        id=uuid4(),
-        **user.model_dump(),
+    created_user = await user_service.create_user(
+        session=session,
+        data=user,
     )
 
-    session.add(created_user)
-
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-
-        if is_user_email_unique_violation(exc):
-            raise UserEmailAlreadyExistsError() from exc
-
-        raise
-
-    response.headers["Location"] = f"/users/{created_user.id}"
+    response.headers["Location"] = (
+        f"/users/{created_user.id}"
+    )
 
     return UserRead.model_validate(created_user)

@@ -11,6 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from models.base import Base
 
 if TYPE_CHECKING:
+    from models.contacts import Contact
+    from models.conversations import Conversation
     from models.organization_members import OrganizationMember
 
 class Organization(Base):
@@ -29,6 +31,18 @@ class Organization(Base):
     )
 
     memberships: Mapped[list[OrganizationMember]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="raise",
+    )
+    conversations: Mapped[list[Conversation]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="raise",
+    )
+    contacts: Mapped[list[Contact]] = relationship(
         back_populates="organization",
         cascade="all, delete-orphan",
         passive_deletes=True,
