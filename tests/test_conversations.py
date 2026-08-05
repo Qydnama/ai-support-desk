@@ -1,17 +1,36 @@
-from uuid import uuid4
+from collections.abc import Callable
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
+from core.enums import OrganizationRole
+
+TEST_PASSWORD = "correct-horse-battery-staple"
+
+
+def authorization_headers(
+    client: TestClient,
+    email: str,
+) -> dict[str, str]:
+    response = client.post(
+        "/auth/login",
+        json={"email": email, "password": TEST_PASSWORD},
+    )
+    assert response.status_code == 200
+    return {
+        "Authorization": f"Bearer {response.json()['access_token']}"
+    }
 
 def create_user(
     client: TestClient,
     suffix: str,
 ) -> dict[str, str]:
     response = client.post(
-        "/users",
+        "/auth/register",
         json={
             "name": f"User {suffix}",
             "email": f"{suffix}@example.com",
+            "password": TEST_PASSWORD,
         },
     )
     assert response.status_code == 201
@@ -22,8 +41,19 @@ def create_organization(
     client: TestClient,
     suffix: str,
 ) -> dict[str, str]:
+    email = f"owner-{suffix}@example.com"
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "name": f"Owner {suffix}",
+            "email": email,
+            "password": TEST_PASSWORD,
+        },
+    )
+    assert register_response.status_code == 201
     response = client.post(
         "/organizations",
+        headers=authorization_headers(client, email),
         json={
             "name": f"Organization {suffix}",
             "slug": f"organization-{suffix}",
@@ -37,9 +67,11 @@ def create_contact(
     client: TestClient,
     organization_id: str,
     suffix: str,
+    headers: dict[str, str],
 ) -> dict[str, str]:
     response = client.post(
         f"/organizations/{organization_id}/contacts",
+        headers=headers,
         json={
             "name": f"Customer {suffix}",
             "email": f"customer-{suffix}@example.com",
@@ -49,27 +81,34 @@ def create_contact(
     return response.json()
 
 
-def add_member(
-    client: TestClient,
-    organization_id: str,
-    user_id: str,
-) -> None:
-    response = client.post(
-        f"/organizations/{organization_id}/members/{user_id}",
-    )
-    assert response.status_code == 201
-
-
 def test_support_conversation_lifecycle(
     client: TestClient,
+    create_stored_membership: Callable[
+        [UUID, UUID, OrganizationRole],
+        None,
+    ],
 ) -> None:
     agent = create_user(client, "support-agent")
     organization = create_organization(client, "support-lifecycle")
-    add_member(client, organization["id"], agent["id"])
-    contact = create_contact(client, organization["id"], "alice")
+    create_stored_membership(
+        UUID(organization["id"]),
+        UUID(agent["id"]),
+        OrganizationRole.AGENT,
+    )
+    agent_headers = authorization_headers(
+        client,
+        agent["email"],
+    )
+    contact = create_contact(
+        client,
+        organization["id"],
+        "alice",
+        agent_headers,
+    )
 
     create_response = client.post(
         "/conversations",
+        headers=agent_headers,
         json={
             "organization_id": organization["id"],
             "contact_id": contact["id"],
@@ -85,6 +124,7 @@ def test_support_conversation_lifecycle(
 
     update_response = client.patch(
         f"/conversations/{conversation_id}",
+        headers=agent_headers,
         json={
             "status": "PENDING",
             "assigned_user_id": agent["id"],
@@ -96,6 +136,7 @@ def test_support_conversation_lifecycle(
 
     contact_message = client.post(
         f"/conversations/{conversation_id}/messages",
+        headers=agent_headers,
         json={
             "sender_type": "CONTACT",
             "author_contact_id": contact["id"],
@@ -106,9 +147,9 @@ def test_support_conversation_lifecycle(
 
     agent_message = client.post(
         f"/conversations/{conversation_id}/messages",
+        headers=agent_headers,
         json={
             "sender_type": "AGENT",
-            "author_user_id": agent["id"],
             "content": "I will check your account.",
         },
     )
@@ -116,6 +157,7 @@ def test_support_conversation_lifecycle(
 
     ai_message = client.post(
         f"/conversations/{conversation_id}/messages",
+        headers=agent_headers,
         json={
             "sender_type": "AI",
             "content": "I found an account recovery article.",
@@ -125,6 +167,7 @@ def test_support_conversation_lifecycle(
 
     messages_response = client.get(
         f"/conversations/{conversation_id}/messages",
+        headers=agent_headers,
     )
     assert messages_response.status_code == 200
     messages = messages_response.json()
@@ -144,16 +187,31 @@ def test_conversation_enforces_tenant_and_participants(
 ) -> None:
     organization = create_organization(client, "tenant-a")
     other_organization = create_organization(client, "tenant-b")
-    contact = create_contact(client, organization["id"], "tenant-a")
+    organization_headers = authorization_headers(
+        client,
+        "owner-tenant-a@example.com",
+    )
+    other_organization_headers = authorization_headers(
+        client,
+        "owner-tenant-b@example.com",
+    )
+    contact = create_contact(
+        client,
+        organization["id"],
+        "tenant-a",
+        organization_headers,
+    )
     other_contact = create_contact(
         client,
         other_organization["id"],
         "tenant-b",
+        other_organization_headers,
     )
     outsider = create_user(client, "outsider")
 
     wrong_tenant = client.post(
         "/conversations",
+        headers=organization_headers,
         json={
             "organization_id": organization["id"],
             "contact_id": other_contact["id"],
@@ -165,6 +223,7 @@ def test_conversation_enforces_tenant_and_participants(
 
     conversation_response = client.post(
         "/conversations",
+        headers=organization_headers,
         json={
             "organization_id": organization["id"],
             "contact_id": contact["id"],
@@ -175,16 +234,37 @@ def test_conversation_enforces_tenant_and_participants(
 
     outsider_message = client.post(
         f"/conversations/{conversation_id}/messages",
+        headers=authorization_headers(
+            client,
+            outsider["email"],
+        ),
         json={
             "sender_type": "AGENT",
-            "author_user_id": outsider["id"],
             "content": "I am not an agent of this organization.",
         },
     )
-    assert outsider_message.status_code == 403
+    assert outsider_message.status_code == 404
+
+    outsider_list = client.get(
+        "/conversations",
+        headers=authorization_headers(
+            client,
+            outsider["email"],
+        ),
+        params={"organization_id": organization["id"]},
+    )
+    assert outsider_list.status_code == 403
+    assert outsider_list.json()["code"] == (
+        "organization_member_required"
+    )
+    assert client.get(
+        "/conversations",
+        params={"organization_id": organization["id"]},
+    ).status_code == 401
 
     wrong_contact_message = client.post(
         f"/conversations/{conversation_id}/messages",
+        headers=organization_headers,
         json={
             "sender_type": "CONTACT",
             "author_contact_id": other_contact["id"],
@@ -195,6 +275,7 @@ def test_conversation_enforces_tenant_and_participants(
 
     invalid_author_shape = client.post(
         f"/conversations/{conversation_id}/messages",
+        headers=organization_headers,
         json={
             "sender_type": "AI",
             "author_contact_id": contact["id"],
@@ -203,15 +284,36 @@ def test_conversation_enforces_tenant_and_participants(
     )
     assert invalid_author_shape.status_code == 422
 
+    forged_agent = client.post(
+        f"/conversations/{conversation_id}/messages",
+        headers=organization_headers,
+        json={
+            "sender_type": "AGENT",
+            "author_user_id": outsider["id"],
+            "content": "Attempt to forge another agent.",
+        },
+    )
+    assert forged_agent.status_code == 422
+
 
 def test_conversation_validation_not_found_and_cascade(
     client: TestClient,
 ) -> None:
     organization = create_organization(client, "cascade-conversation")
-    contact = create_contact(client, organization["id"], "cascade")
+    owner_headers = authorization_headers(
+        client,
+        "owner-cascade-conversation@example.com",
+    )
+    contact = create_contact(
+        client,
+        organization["id"],
+        "cascade",
+        owner_headers,
+    )
 
     invalid_response = client.post(
         "/conversations",
+        headers=owner_headers,
         json={
             "organization_id": organization["id"],
             "contact_id": contact["id"],
@@ -220,11 +322,15 @@ def test_conversation_validation_not_found_and_cascade(
     )
     assert invalid_response.status_code == 422
 
-    missing_response = client.get(f"/conversations/{uuid4()}")
+    missing_response = client.get(
+        f"/conversations/{uuid4()}",
+        headers=owner_headers,
+    )
     assert missing_response.status_code == 404
 
     conversation_response = client.post(
         "/conversations",
+        headers=owner_headers,
         json={
             "organization_id": organization["id"],
             "contact_id": contact["id"],
@@ -235,8 +341,12 @@ def test_conversation_validation_not_found_and_cascade(
 
     delete_response = client.delete(
         f"/organizations/{organization['id']}",
+        headers=owner_headers,
     )
     assert delete_response.status_code == 204
 
-    removed_response = client.get(f"/conversations/{conversation_id}")
+    removed_response = client.get(
+        f"/conversations/{conversation_id}",
+        headers=owner_headers,
+    )
     assert removed_response.status_code == 404

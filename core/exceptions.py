@@ -43,3 +43,19 @@ class ContactNotFoundError(AppError):
 
 class ContactEmailAlreadyExistsError(AppError):
     message = "A contact with this email already exists in the organization"
+
+
+class AuthenticationRequiredError(AppError):
+    message = "Authentication credentials are invalid"
+
+
+class OrganizationMemberRequiredError(AppError):
+    message = "The user must be an organization member"
+
+
+class OrganizationPermissionDeniedError(AppError):
+    message = "The user does not have permission for this operation"
+
+
+class LastOrganizationOwnerError(AppError):
+    message = "An organization must have at least one owner"

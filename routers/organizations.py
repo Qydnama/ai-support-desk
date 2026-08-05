@@ -1,8 +1,16 @@
 from fastapi import APIRouter, Response, status
 
+from dependencies.auth import CurrentUserDep
 from dependencies.database import SessionDep
 from dependencies.organization_members import (
     ExistingOrganizationMemberDep,
+    MemberCreatePermissionDep,
+    MemberDeletePermissionDep,
+    MemberReadPermissionDep,
+    MemberRoleUpdatePermissionDep,
+    OrganizationDeletePermissionDep,
+    OrganizationReadPermissionDep,
+    OrganizationUpdatePermissionDep,
 )
 from dependencies.organizations import (
     ExistingOrganizationDep,
@@ -17,6 +25,7 @@ from repositories import organizations as organization_repository
 from schemas.organization_members import (
     OrganizationMemberListItem,
     OrganizationMemberRead,
+    OrganizationMemberRoleUpdate,
 )
 from schemas.organizations import (
     OrganizationCreate,
@@ -43,10 +52,12 @@ router = APIRouter(
 async def list_organizations(
     filters: OrganizationFiltersQuery,
     pagination: PaginationDep,
+    current_user: CurrentUserDep,
     session: SessionDep,
 ) -> list[OrganizationSummaryRead]:
     rows = await organization_repository.list_summaries(
         session=session,
+        current_user_id=current_user.id,
         name=filters.name,
         slug=filters.slug,
         member_user_id=filters.member_user_id,
@@ -73,6 +84,7 @@ async def list_organizations(
 )
 async def get_organization(
     existing_organization: ExistingOrganizationDep,
+    _permission: OrganizationReadPermissionDep,
 ) -> OrganizationRead:
     return OrganizationRead.model_validate(
         existing_organization,
@@ -86,6 +98,7 @@ async def get_organization(
 )
 async def list_organization_members(
     existing_organization: ExistingOrganizationDep,
+    _permission: MemberReadPermissionDep,
     pagination: PaginationDep,
     session: SessionDep,
 ) -> list[OrganizationMemberListItem]:
@@ -106,6 +119,7 @@ async def list_organization_members(
                 if membership.user.deleted_at is not None
                 else membership.user.name
             ),
+            role=membership.role,
             is_deleted=membership.user.deleted_at is not None,
         )
         for membership in memberships
@@ -119,6 +133,7 @@ async def list_organization_members(
 )
 async def create_organization(
     organization: OrganizationCreate,
+    current_user: CurrentUserDep,
     response: Response,
     session: SessionDep,
 ) -> OrganizationRead:
@@ -126,6 +141,7 @@ async def create_organization(
         await organization_service.create_organization(
             session=session,
             data=organization,
+            owner=current_user,
         )
     )
 
@@ -145,6 +161,7 @@ async def create_organization(
 )
 async def add_organization_member(
     existing_organization: ExistingOrganizationDep,
+    _permission: MemberCreatePermissionDep,
     existing_user: ExistingUserDep,
     response: Response,
     session: SessionDep,
@@ -173,6 +190,7 @@ async def add_organization_member(
 async def update_organization(
     update: OrganizationUpdate,
     existing_organization: ExistingOrganizationDep,
+    _permission: OrganizationUpdatePermissionDep,
     session: SessionDep,
 ) -> OrganizationRead:
     updated_organization = (
@@ -195,6 +213,7 @@ async def update_organization(
 )
 async def delete_organization(
     existing_organization: ExistingOrganizationDep,
+    _permission: OrganizationDeletePermissionDep,
     session: SessionDep,
 ) -> Response:
     await organization_service.delete_organization(
@@ -213,14 +232,36 @@ async def delete_organization(
     summary="Remove an organization member",
 )
 async def remove_organization_member(
+    current_membership: MemberDeletePermissionDep,
     existing_membership: ExistingOrganizationMemberDep,
     session: SessionDep,
 ) -> Response:
     await organization_member_service.remove_member(
         session=session,
         membership=existing_membership,
+        actor_membership=current_membership,
     )
 
     return Response(
         status_code=status.HTTP_204_NO_CONTENT,
     )
+
+
+@router.patch(
+    "/{organization_id}/members/{user_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Update an organization member role",
+)
+async def update_organization_member_role(
+    data: OrganizationMemberRoleUpdate,
+    _permission: MemberRoleUpdatePermissionDep,
+    existing_membership: ExistingOrganizationMemberDep,
+    session: SessionDep,
+) -> OrganizationMemberRead:
+    membership = await organization_member_service.update_member_role(
+        session=session,
+        membership=existing_membership,
+        role=data.role,
+    )
+
+    return OrganizationMemberRead.model_validate(membership)

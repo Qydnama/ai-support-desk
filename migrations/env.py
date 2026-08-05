@@ -11,6 +11,7 @@ import models.conversations
 import models.messages
 import models.organization_members
 import models.organizations
+import models.refresh_sessions
 import models.users
 from models.base import Base
 from settings import settings

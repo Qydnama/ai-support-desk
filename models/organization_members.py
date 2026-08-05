@@ -1,9 +1,15 @@
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index
+from sqlalchemy import (
+    CheckConstraint,
+    Enum,
+    ForeignKey,
+    Index,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from core.enums import OrganizationRole
 from models.base import Base
 
 if TYPE_CHECKING:
@@ -30,7 +36,18 @@ class OrganizationMember(Base):
         ),
         primary_key=True,
     )
-
+    role: Mapped[OrganizationRole] = mapped_column(
+        Enum(
+            OrganizationRole,
+            name="organization_role",
+            native_enum=False,
+            create_constraint=False,
+            length=20,
+        ),
+        default=OrganizationRole.AGENT,
+        server_default=OrganizationRole.AGENT.value,
+        nullable=False,
+    )
     organization: Mapped[Organization] = relationship(
         back_populates="memberships",
         lazy="raise",
@@ -41,6 +58,10 @@ class OrganizationMember(Base):
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "role IN ('OWNER', 'ADMIN', 'AGENT')",
+            name="ck_organization_members_role_valid",
+        ),
         Index(
             "ix_organization_members_user_id_organization_id",
             "user_id",

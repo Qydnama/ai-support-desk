@@ -3,9 +3,12 @@ from uuid import uuid4
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.enums import OrganizationRole
 from core.exceptions import OrganizationSlugAlreadyExistsError
 from database_errors import is_organization_slug_unique_violation
+from models.organization_members import OrganizationMember
 from models.organizations import Organization
+from models.users import User
 from schemas.organizations import (
     OrganizationCreate,
     OrganizationUpdate,
@@ -15,13 +18,23 @@ from schemas.organizations import (
 async def create_organization(
     session: AsyncSession,
     data: OrganizationCreate,
+    owner: User,
 ) -> Organization:
     organization = Organization(
         id=uuid4(),
         **data.model_dump(),
     )
 
-    session.add(organization)
+    owner_membership = OrganizationMember(
+        organization_id=organization.id,
+        user_id=owner.id,
+        role=OrganizationRole.OWNER,
+    )
+
+    session.add_all([
+        organization,
+        owner_membership,
+    ])
 
     try:
         await session.commit()

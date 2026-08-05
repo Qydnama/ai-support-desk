@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Response, status
 
+from dependencies.auth import CurrentUserDep
 from dependencies.database import SessionDep
-from dependencies.pagination import PaginationDep
-from dependencies.users import ExistingUserDep
-from repositories import users as user_repository
+from dependencies.users import CurrentUserAccountDep
 from schemas.users import (
-    UserCreate,
     UserRead,
     UserReplace,
     UserUpdate,
@@ -24,18 +22,10 @@ router = APIRouter(
     summary="List users",
 )
 async def list_users(
-    pagination: PaginationDep,
-    session: SessionDep,
+    current_user: CurrentUserDep,
 ) -> list[UserRead]:
-    users = await user_repository.list_active(
-        session=session,
-        limit=pagination.limit,
-        offset=pagination.offset,
-    )
-
     return [
-        UserRead.model_validate(user)
-        for user in users
+        UserRead.model_validate(current_user),
     ]
 
 
@@ -45,9 +35,9 @@ async def list_users(
     summary="Get a user",
 )
 async def get_user(
-    existing_user: ExistingUserDep,
+    current_user: CurrentUserAccountDep,
 ) -> UserRead:
-    return UserRead.model_validate(existing_user)
+    return UserRead.model_validate(current_user)
 
 
 @router.put(
@@ -56,13 +46,13 @@ async def get_user(
     summary="Replace a user",
 )
 async def replace_user(
-    existing_user: ExistingUserDep,
+    current_user: CurrentUserAccountDep,
     replacement: UserReplace,
     session: SessionDep,
 ) -> UserRead:
     replaced_user = await user_service.replace_user(
         session=session,
-        user=existing_user,
+        user=current_user,
         data=replacement,
     )
 
@@ -76,12 +66,12 @@ async def replace_user(
 )
 async def update_user(
     update: UserUpdate,
-    existing_user: ExistingUserDep,
+    current_user: CurrentUserAccountDep,
     session: SessionDep,
 ) -> UserRead:
     updated_user = await user_service.update_user(
         session=session,
-        user=existing_user,
+        user=current_user,
         data=update,
     )
 
@@ -94,36 +84,14 @@ async def update_user(
     summary="Delete a user",
 )
 async def delete_user(
-    existing_user: ExistingUserDep,
+    current_user: CurrentUserAccountDep,
     session: SessionDep,
 ) -> Response:
     await user_service.delete_user(
         session=session,
-        user=existing_user,
+        user=current_user,
     )
 
     return Response(
         status_code=status.HTTP_204_NO_CONTENT,
     )
-
-
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a user",
-)
-async def create_user(
-    user: UserCreate,
-    response: Response,
-    session: SessionDep,
-) -> UserRead:
-    created_user = await user_service.create_user(
-        session=session,
-        data=user,
-    )
-
-    response.headers["Location"] = (
-        f"/users/{created_user.id}"
-    )
-
-    return UserRead.model_validate(created_user)

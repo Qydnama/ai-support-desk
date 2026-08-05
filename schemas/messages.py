@@ -13,7 +13,6 @@ class MessageCreate(BaseModel):
     )
 
     sender_type: MessageSenderType
-    author_user_id: UUID | None = None
     author_contact_id: UUID | None = None
     content: str = Field(
         min_length=1,
@@ -22,15 +21,12 @@ class MessageCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_author(self) -> "MessageCreate":
-        has_user = self.author_user_id is not None
         has_contact = self.author_contact_id is not None
 
         if self.sender_type is MessageSenderType.CONTACT:
-            valid = has_contact and not has_user
-        elif self.sender_type is MessageSenderType.AGENT:
-            valid = has_user and not has_contact
+            valid = has_contact
         else:
-            valid = not has_user and not has_contact
+            valid = not has_contact
 
         if not valid:
             raise ValueError(

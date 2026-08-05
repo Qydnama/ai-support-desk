@@ -1,9 +1,16 @@
 from fastapi import APIRouter, Response, status
 
 from dependencies.conversations import (
+    ConversationCreatePermissionDep,
     ConversationFiltersQuery,
+    ConversationListPermissionDep,
+    ConversationReadPermissionDep,
+    ConversationUpdatePermissionDep,
     ExistingConversationDep,
+    MessageCreatePermissionDep,
+    MessageReadPermissionDep,
 )
+from dependencies.auth import CurrentUserDep
 from dependencies.database import SessionDep
 from dependencies.pagination import PaginationDep
 from repositories import conversations as conversation_repository
@@ -31,11 +38,14 @@ router = APIRouter(
 async def list_conversations(
     filters: ConversationFiltersQuery,
     pagination: PaginationDep,
+    current_user: CurrentUserDep,
+    _permission: ConversationListPermissionDep,
     session: SessionDep,
 ) -> list[ConversationRead]:
     conversations = await conversation_repository.list_by_organization(
         session=session,
         organization_id=filters.organization_id,
+        user_id=current_user.id,
         status=filters.status,
         limit=pagination.limit,
         offset=pagination.offset,
@@ -54,6 +64,7 @@ async def list_conversations(
 )
 async def get_conversation(
     conversation: ExistingConversationDep,
+    _permission: ConversationReadPermissionDep,
 ) -> ConversationRead:
     return ConversationRead.model_validate(conversation)
 
@@ -65,6 +76,7 @@ async def get_conversation(
 )
 async def create_conversation(
     data: ConversationCreate,
+    _permission: ConversationCreatePermissionDep,
     response: Response,
     session: SessionDep,
 ) -> ConversationRead:
@@ -88,6 +100,7 @@ async def create_conversation(
 async def update_conversation(
     data: ConversationUpdate,
     conversation: ExistingConversationDep,
+    _permission: ConversationUpdatePermissionDep,
     session: SessionDep,
 ) -> ConversationRead:
     updated_conversation = await conversation_service.update_conversation(
@@ -106,6 +119,7 @@ async def update_conversation(
 )
 async def list_messages(
     conversation: ExistingConversationDep,
+    _permission: MessageReadPermissionDep,
     pagination: PaginationDep,
     session: SessionDep,
 ) -> list[MessageRead]:
@@ -130,6 +144,8 @@ async def list_messages(
 async def create_message(
     data: MessageCreate,
     conversation: ExistingConversationDep,
+    current_user: CurrentUserDep,
+    _permission: MessageCreatePermissionDep,
     response: Response,
     session: SessionDep,
 ) -> MessageRead:
@@ -137,6 +153,7 @@ async def create_message(
         session=session,
         conversation=conversation,
         data=data,
+        current_user=current_user,
     )
 
     response.headers["Location"] = (

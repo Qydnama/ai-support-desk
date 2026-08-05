@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import Depends
 
 from core.exceptions import UserNotFoundError
+from dependencies.auth import CurrentUserDep
 from dependencies.database import SessionDep
 from models.users import User
 from repositories import users as user_repository
@@ -27,4 +28,20 @@ async def get_existing_user(
 ExistingUserDep = Annotated[
     User,
     Depends(get_existing_user),
+]
+
+
+async def get_current_user_account(
+    user_id: UUID,
+    current_user: CurrentUserDep,
+) -> User:
+    if current_user.id != user_id:
+        raise UserNotFoundError()
+
+    return current_user
+
+
+CurrentUserAccountDep = Annotated[
+    User,
+    Depends(get_current_user_account),
 ]

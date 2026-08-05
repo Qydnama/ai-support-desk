@@ -12,3 +12,30 @@ class MessageSenderType(StrEnum):
     AGENT = "AGENT"
     AI = "AI"
     SYSTEM = "SYSTEM"
+
+
+class OrganizationRole(StrEnum):
+    OWNER = "OWNER"
+    ADMIN = "ADMIN"
+    AGENT = "AGENT"
+
+
+class OrganizationPermission(StrEnum):
+    ORGANIZATION_READ = "organization:read"
+    ORGANIZATION_UPDATE = "organization:update"
+    ORGANIZATION_DELETE = "organization:delete"
+
+    MEMBER_READ = "member:read"
+    MEMBER_CREATE = "member:create"
+    MEMBER_DELETE = "member:delete"
+    MEMBER_ROLE_UPDATE = "member:role:update"
+
+    CONTACT_READ = "contact:read"
+    CONTACT_CREATE = "contact:create"
+
+    CONVERSATION_READ = "conversation:read"
+    CONVERSATION_CREATE = "conversation:create"
+    CONVERSATION_UPDATE = "conversation:update"
+
+    MESSAGE_READ = "message:read"
+    MESSAGE_CREATE = "message:create"

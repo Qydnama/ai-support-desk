@@ -5,13 +5,17 @@ from fastapi.responses import JSONResponse
 
 from core.exceptions import (
     AppError,
+    AuthenticationRequiredError,
     ContactEmailAlreadyExistsError,
     ContactNotFoundError,
     ConversationMemberRequiredError,
     ConversationNotFoundError,
+    LastOrganizationOwnerError,
     OrganizationMemberAlreadyExistsError,
     OrganizationMemberNotFoundError,
+    OrganizationMemberRequiredError,
     OrganizationNotFoundError,
+    OrganizationPermissionDeniedError,
     OrganizationSlugAlreadyExistsError,
     UserEmailAlreadyExistsError,
     UserNotFoundError,
@@ -22,9 +26,17 @@ from core.exceptions import (
 class HttpErrorDetails:
     status_code: int
     code: str
+    headers: dict[str, str] | None = None
 
 
 HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
+    AuthenticationRequiredError: HttpErrorDetails(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        code="authentication_required",
+        headers={
+            "WWW-Authenticate": "Bearer",
+        },
+    ),
     ContactNotFoundError: HttpErrorDetails(
         status_code=status.HTTP_404_NOT_FOUND,
         code="contact_not_found",
@@ -65,6 +77,18 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
         status_code=status.HTTP_404_NOT_FOUND,
         code="organization_member_not_found",
     ),
+    OrganizationMemberRequiredError: HttpErrorDetails(
+        status_code=status.HTTP_403_FORBIDDEN,
+        code="organization_member_required",
+    ),
+    OrganizationPermissionDeniedError: HttpErrorDetails(
+        status_code=status.HTTP_403_FORBIDDEN,
+        code="organization_permission_denied",
+    ),
+    LastOrganizationOwnerError: HttpErrorDetails(
+        status_code=status.HTTP_409_CONFLICT,
+        code="last_organization_owner",
+    ),
 }
 
 
@@ -76,6 +100,7 @@ async def app_error_handler(
 
     return JSONResponse(
         status_code=details.status_code,
+        headers=details.headers,
         content={
             "code": details.code,
             "message": exc.message,

@@ -1,10 +1,12 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from core.enums import OrganizationRole
 from models.organization_members import OrganizationMember
+from models.organizations import Organization
 
 
 async def get_by_ids(
@@ -45,3 +47,32 @@ async def list_by_organization(
     memberships = await session.scalars(statement)
 
     return list(memberships)
+
+
+async def lock_organization(
+    session: AsyncSession,
+    organization_id: UUID,
+) -> None:
+    statement = (
+        select(Organization.id)
+        .where(Organization.id == organization_id)
+        .with_for_update()
+    )
+
+    await session.execute(statement)
+
+
+async def count_by_role(
+    session: AsyncSession,
+    *,
+    organization_id: UUID,
+    role: OrganizationRole,
+) -> int:
+    statement = select(func.count()).select_from(
+        OrganizationMember,
+    ).where(
+        OrganizationMember.organization_id == organization_id,
+        OrganizationMember.role == role,
+    )
+
+    return await session.scalar(statement) or 0

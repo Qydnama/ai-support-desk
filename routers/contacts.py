@@ -2,6 +2,10 @@ from fastapi import APIRouter, Response, status
 
 from dependencies.contacts import ExistingContactDep
 from dependencies.database import SessionDep
+from dependencies.organization_members import (
+    ContactCreatePermissionDep,
+    ContactReadPermissionDep,
+)
 from dependencies.organizations import ExistingOrganizationDep
 from dependencies.pagination import PaginationDep
 from repositories import contacts as contact_repository
@@ -21,6 +25,7 @@ router = APIRouter(
 )
 async def list_contacts(
     existing_organization: ExistingOrganizationDep,
+    _permission: ContactReadPermissionDep,
     pagination: PaginationDep,
     session: SessionDep,
 ) -> list[ContactRead]:
@@ -45,6 +50,7 @@ async def list_contacts(
 async def create_contact(
     data: ContactCreate,
     existing_organization: ExistingOrganizationDep,
+    _permission: ContactCreatePermissionDep,
     response: Response,
     session: SessionDep,
 ) -> ContactRead:
@@ -68,5 +74,6 @@ async def create_contact(
 )
 async def get_contact(
     contact: ExistingContactDep,
+    _permission: ContactReadPermissionDep,
 ) -> ContactRead:
     return ContactRead.model_validate(contact)

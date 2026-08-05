@@ -20,6 +20,7 @@ async def get_by_id(
 async def list_summaries(
     session: AsyncSession,
     *,
+    current_user_id: UUID,
     name: str | None,
     slug: str | None,
     member_user_id: UUID | None,
@@ -40,6 +41,10 @@ async def list_summaries(
             OrganizationMember,
             OrganizationMember.organization_id
             == Organization.id,
+        ).where(
+            Organization.memberships.any(
+                OrganizationMember.user_id == current_user_id,
+            ),
         )
     )
 

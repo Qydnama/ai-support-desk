@@ -50,6 +50,7 @@ app.add_middleware(
         "DELETE",
     ],
     allow_headers=[
+        "Authorization",
         "Content-Type",
     ],
     expose_headers=[

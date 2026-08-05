@@ -1,9 +1,43 @@
 from collections.abc import Callable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
 from models.users import User
+
+TEST_PASSWORD = "correct-horse-battery-staple"
+
+
+def register_user(
+    client: TestClient,
+    *,
+    name: str,
+    email: str,
+) -> dict[str, str]:
+    response = client.post(
+        "/auth/register",
+        json={
+            "name": name,
+            "email": email,
+            "password": TEST_PASSWORD,
+        },
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def authorization_headers(
+    client: TestClient,
+    email: str,
+) -> dict[str, str]:
+    response = client.post(
+        "/auth/login",
+        json={"email": email, "password": TEST_PASSWORD},
+    )
+    assert response.status_code == 200
+    return {
+        "Authorization": f"Bearer {response.json()['access_token']}"
+    }
 
 
 def test_health_check(client: TestClient) -> None:
@@ -14,183 +48,120 @@ def test_health_check(client: TestClient) -> None:
     assert "X-Process-Time" in response.headers
 
 
-def test_create_and_get_user(client: TestClient) -> None:
-    create_response = client.post(
-        "/users",
-        json={
-            "name": "Alice",
-            "email": "alice@example.com",
-        },
-    )
-
-    assert create_response.status_code == 201
-
-    created_user = create_response.json()
-    user_id = UUID(created_user["id"])
-
-    assert created_user == {
-        "id": str(user_id),
-        "name": "Alice",
-        "email": "alice@example.com",
-    }
-    assert create_response.headers["Location"] == f"/users/{user_id}"
-
-    get_response = client.get(f"/users/{user_id}")
-
-    assert get_response.status_code == 200
-    assert get_response.json() == created_user
-
-
-def test_list_users(client: TestClient) -> None:
-    first_user = client.post(
-        "/users",
-        json={
-            "name": "Alice",
-            "email": "alice@example.com",
-        },
-    ).json()
-    second_user = client.post(
-        "/users",
-        json={
-            "name": "Bob",
-            "email": "bob@example.com",
-        },
-    ).json()
-
-    response = client.get("/users")
-
-    assert response.status_code == 200
-    assert {user["id"] for user in response.json()} == {
-        first_user["id"],
-        second_user["id"],
-    }
-
-
-def test_create_user_with_existing_email_returns_conflict(
-    client: TestClient,
-) -> None:
-    first_response = client.post(
-        "/users",
-        json={
-            "name": "Alice",
-            "email": "alice@example.com",
-        },
-    )
-    second_response = client.post(
-        "/users",
-        json={
-            "name": "Another Alice",
-            "email": "ALICE@example.com",
-        },
-    )
-
-    assert first_response.status_code == 201
-    assert second_response.status_code == 409
-    assert second_response.json() == {
-        "code": "user_email_already_exists",
-        "message": "A user with this email already exists",
-    }
-
-
-def test_get_missing_user_returns_not_found(
-    client: TestClient,
-) -> None:
-    response = client.get(
-        "/users/00000000-0000-0000-0000-000000000000"
-    )
-
-    assert response.status_code == 404
-    assert response.json() == {
-        "code": "user_not_found",
-        "message": "User not found",
-    }
-
-
-def test_get_user_rejects_invalid_uuid(client: TestClient) -> None:
-    response = client.get("/users/not-a-uuid")
-
-    assert response.status_code == 422
-
-
-def test_create_user_rejects_invalid_data(
+def test_legacy_user_creation_is_disabled(
     client: TestClient,
 ) -> None:
     response = client.post(
         "/users",
-        json={
-            "name": "   ",
-            "email": "not-an-email",
-            "role": "admin",
-        },
+        json={"name": "Alice", "email": "alice@example.com"},
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 405
 
 
-def test_user_lifecycle(
+def test_user_endpoints_require_authentication(
+    client: TestClient,
+) -> None:
+    assert client.get("/users").status_code == 401
+    assert client.get(f"/users/{uuid4()}").status_code == 401
+
+
+def test_user_can_only_read_self(client: TestClient) -> None:
+    alice = register_user(
+        client,
+        name="Alice",
+        email="alice@example.com",
+    )
+    bob = register_user(
+        client,
+        name="Bob",
+        email="bob@example.com",
+    )
+    headers = authorization_headers(client, alice["email"])
+
+    self_response = client.get(
+        f"/users/{alice['id']}",
+        headers=headers,
+    )
+    list_response = client.get("/users", headers=headers)
+    other_response = client.get(
+        f"/users/{bob['id']}",
+        headers=headers,
+    )
+    other_update = client.patch(
+        f"/users/{bob['id']}",
+        headers=headers,
+        json={"name": "Forged name"},
+    )
+    other_delete = client.delete(
+        f"/users/{bob['id']}",
+        headers=headers,
+    )
+
+    assert self_response.status_code == 200
+    assert self_response.json() == alice
+    assert list_response.status_code == 200
+    assert list_response.json() == [alice]
+    assert other_response.status_code == 404
+    assert other_update.status_code == 404
+    assert other_delete.status_code == 404
+
+
+def test_user_lifecycle_is_self_only(
     client: TestClient,
     read_stored_user: Callable[[UUID], User | None],
 ) -> None:
-    create_response = client.post(
-        "/users",
-        json={
-            "name": "Alice",
-            "email": "alice@example.com",
-        },
+    user = register_user(
+        client,
+        name="Alice",
+        email="alice@example.com",
     )
-
-    assert create_response.status_code == 201
-
-    user_id = create_response.json()["id"]
+    user_id = user["id"]
+    headers = authorization_headers(client, user["email"])
 
     replace_response = client.put(
         f"/users/{user_id}",
-        json={
-            "name": "Bob",
-            "email": "bob@example.com",
-        },
+        headers=headers,
+        json={"name": "Bob", "email": "bob@example.com"},
     )
-
     assert replace_response.status_code == 200
-    assert replace_response.json() == {
-        "id": user_id,
-        "name": "Bob",
-        "email": "bob@example.com",
-    }
 
     update_response = client.patch(
         f"/users/{user_id}",
-        json={
-            "name": "Charlie",
-        },
+        headers=headers,
+        json={"name": "Charlie"},
     )
-
     assert update_response.status_code == 200
-    assert update_response.json() == {
-        "id": user_id,
-        "name": "Charlie",
-        "email": "bob@example.com",
-    }
+    assert update_response.json()["name"] == "Charlie"
 
-    delete_response = client.delete(f"/users/{user_id}")
-
-    assert delete_response.status_code == 204
-    assert delete_response.content == b""
-
-    get_response = client.get(f"/users/{user_id}")
-
-    assert get_response.status_code == 404
-
-    list_response = client.get("/users")
-
-    assert list_response.status_code == 200
-    assert list_response.json() == []
-
-    stored_user = read_stored_user(
-        UUID(user_id),
+    delete_response = client.delete(
+        f"/users/{user_id}",
+        headers=headers,
     )
+    assert delete_response.status_code == 204
 
+    assert client.get(
+        f"/users/{user_id}",
+        headers=headers,
+    ).status_code == 401
+
+    stored_user = read_stored_user(UUID(user_id))
     assert stored_user is not None
     assert stored_user.deleted_at is not None
     assert stored_user.name == "Charlie"
     assert stored_user.email == "bob@example.com"
+
+
+def test_authenticated_user_id_validation(
+    client: TestClient,
+) -> None:
+    user = register_user(
+        client,
+        name="Alice",
+        email="alice@example.com",
+    )
+    headers = authorization_headers(client, user["email"])
+
+    response = client.get("/users/not-a-uuid", headers=headers)
+
+    assert response.status_code == 422
