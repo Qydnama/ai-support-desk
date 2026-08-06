@@ -20,7 +20,7 @@ class MessageCreate(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_author(self) -> "MessageCreate":
+    def validate_author(self) -> MessageCreate:
         has_contact = self.author_contact_id is not None
 
         if self.sender_type is MessageSenderType.CONTACT:

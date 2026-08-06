@@ -8,8 +8,11 @@ from core.exceptions import (
     AuthenticationRequiredError,
     ContactEmailAlreadyExistsError,
     ContactNotFoundError,
+    ConversationAlreadyAssignedError,
     ConversationMemberRequiredError,
     ConversationNotFoundError,
+    ConversationVersionConflictError,
+    IdempotencyKeyConflictError,
     LastOrganizationOwnerError,
     OrganizationMemberAlreadyExistsError,
     OrganizationMemberNotFoundError,
@@ -53,6 +56,14 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
         status_code=status.HTTP_403_FORBIDDEN,
         code="conversation_member_required",
     ),
+    ConversationAlreadyAssignedError: HttpErrorDetails(
+        status_code=status.HTTP_409_CONFLICT,
+        code="conversation_already_assigned",
+    ),
+    ConversationVersionConflictError: HttpErrorDetails(
+        status_code=status.HTTP_409_CONFLICT,
+        code="conversation_version_conflict",
+    ),
     UserNotFoundError: HttpErrorDetails(
         status_code=status.HTTP_404_NOT_FOUND,
         code="user_not_found",
@@ -88,6 +99,10 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
     LastOrganizationOwnerError: HttpErrorDetails(
         status_code=status.HTTP_409_CONFLICT,
         code="last_organization_owner",
+    ),
+    IdempotencyKeyConflictError: HttpErrorDetails(
+        status_code=status.HTTP_409_CONFLICT,
+        code="idempotency_key_conflict",
     ),
 }
 

@@ -1,6 +1,13 @@
-from uuid import uuid4
+import asyncio
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from database_errors import is_contact_email_unique_violation
+from models.contacts import Contact
 
 
 def create_organization(
@@ -154,3 +161,84 @@ def test_contacts_require_tenant_membership(
             "email": "intruder@example.com",
         },
     ).status_code == 403
+
+
+def test_unique_index_arbitrates_concurrent_contact_creation(
+    client: TestClient,
+    concurrent_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    organization, _headers = create_organization(
+        client,
+        "concurrent-unique",
+    )
+    organization_id = UUID(organization["id"])
+
+    async def create_concurrent_duplicates() -> tuple[list[str], int]:
+        both_prechecks_finished = asyncio.Barrier(2)
+
+        async def create_contact_with_precheck(
+            *,
+            name: str,
+            email: str,
+        ) -> str:
+            async with concurrent_session_factory() as session:
+                existing_contact_id = await session.scalar(
+                    select(Contact.id).where(
+                        Contact.organization_id == organization_id,
+                        func.lower(Contact.email) == email.lower(),
+                    ),
+                )
+                assert existing_contact_id is None
+
+                await both_prechecks_finished.wait()
+
+                session.add(
+                    Contact(
+                        id=uuid4(),
+                        organization_id=organization_id,
+                        name=name,
+                        email=email,
+                    ),
+                )
+
+                try:
+                    await session.commit()
+                except IntegrityError as exc:
+                    await session.rollback()
+                    assert is_contact_email_unique_violation(exc)
+                    return "conflict"
+
+            return "committed"
+
+        results = await asyncio.gather(
+            create_contact_with_precheck(
+                name="First duplicate",
+                email="duplicate@example.com",
+            ),
+            create_contact_with_precheck(
+                name="Second duplicate",
+                email="DUPLICATE@example.com",
+            ),
+        )
+
+        async with concurrent_session_factory() as verification_session:
+            stored_count = await verification_session.scalar(
+                select(func.count())
+                .select_from(Contact)
+                .where(
+                    Contact.organization_id == organization_id,
+                    func.lower(Contact.email)
+                    == "duplicate@example.com",
+                ),
+            )
+
+        assert stored_count is not None
+
+        return results, stored_count
+
+    results, stored_count = asyncio.run(
+        create_concurrent_duplicates(),
+    )
+
+    assert sorted(results) == ["committed", "conflict"]
+    assert stored_count == 1

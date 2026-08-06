@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.enums import ConversationStatus
@@ -70,3 +70,56 @@ async def list_by_organization(
     conversations = await session.scalars(statement)
 
     return list(conversations)
+
+
+async def claim_if_unassigned(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    organization_id: UUID,
+    user_id: UUID,
+) -> Conversation | None:
+    statement = (
+        update(Conversation)
+        .where(
+            Conversation.id == conversation_id,
+            Conversation.organization_id == organization_id,
+            Conversation.assigned_user_id.is_(None),
+        )
+        .values(
+            assigned_user_id=user_id,
+            version=Conversation.version + 1,
+        )
+        .returning(Conversation)
+    )
+
+    result = await session.execute(statement)
+
+    return result.scalar_one_or_none()
+
+
+async def update_status_if_version(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+    organization_id: UUID,
+    status: ConversationStatus,
+    expected_version: int,
+) -> Conversation | None:
+    statement = (
+        update(Conversation)
+        .where(
+            Conversation.id == conversation_id,
+            Conversation.organization_id == organization_id,
+            Conversation.version == expected_version,
+        )
+        .values(
+            status=status,
+            version=Conversation.version + 1,
+        )
+        .returning(Conversation)
+    )
+
+    result = await session.execute(statement)
+
+    return result.scalar_one_or_none()

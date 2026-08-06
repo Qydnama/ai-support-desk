@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Response, status
+from typing import Annotated
 
+from fastapi import APIRouter, Header, Response, status
+
+from dependencies.auth import CurrentUserDep
 from dependencies.conversations import (
     ConversationCreatePermissionDep,
     ConversationFiltersQuery,
@@ -10,7 +13,6 @@ from dependencies.conversations import (
     MessageCreatePermissionDep,
     MessageReadPermissionDep,
 )
-from dependencies.auth import CurrentUserDep
 from dependencies.database import SessionDep
 from dependencies.pagination import PaginationDep
 from repositories import conversations as conversation_repository
@@ -28,6 +30,17 @@ router = APIRouter(
     prefix="/conversations",
     tags=["conversations"],
 )
+
+
+IdempotencyKeyHeader = Annotated[
+    str,
+    Header(
+        alias="Idempotency-Key",
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._:-]+$",
+    ),
+]
 
 
 @router.get(
@@ -112,6 +125,26 @@ async def update_conversation(
     return ConversationRead.model_validate(updated_conversation)
 
 
+@router.post(
+    "/{conversation_id}/claim",
+    status_code=status.HTTP_200_OK,
+    summary="Claim a conversation",
+)
+async def claim_conversation(
+    conversation: ExistingConversationDep,
+    current_user: CurrentUserDep,
+    _permission: ConversationUpdatePermissionDep,
+    session: SessionDep,
+) -> ConversationRead:
+    claimed_conversation = await conversation_service.claim_conversation(
+        session=session,
+        conversation=conversation,
+        current_user=current_user,
+    )
+
+    return ConversationRead.model_validate(claimed_conversation)
+
+
 @router.get(
     "/{conversation_id}/messages",
     status_code=status.HTTP_200_OK,
@@ -145,6 +178,7 @@ async def create_message(
     data: MessageCreate,
     conversation: ExistingConversationDep,
     current_user: CurrentUserDep,
+    idempotency_key: IdempotencyKeyHeader,
     _permission: MessageCreatePermissionDep,
     response: Response,
     session: SessionDep,
@@ -153,6 +187,7 @@ async def create_message(
         session=session,
         conversation=conversation,
         data=data,
+        idempotency_key=idempotency_key,
         current_user=current_user,
     )
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.enums import ConversationStatus
 
@@ -25,19 +25,8 @@ class ConversationUpdate(BaseModel):
         extra="forbid",
     )
 
-    status: ConversationStatus | None = None
-    assigned_user_id: UUID | None = None
-
-    @field_validator("status")
-    @classmethod
-    def reject_null_status(
-        cls,
-        value: ConversationStatus | None,
-    ) -> ConversationStatus:
-        if value is None:
-            raise ValueError("Field cannot be null; omit it instead")
-
-        return value
+    status: ConversationStatus
+    expected_version: int = Field(ge=1)
 
 
 class ConversationRead(BaseModel):
@@ -51,6 +40,7 @@ class ConversationRead(BaseModel):
     assigned_user_id: UUID | None
     subject: str
     status: ConversationStatus
+    version: int
     created_at: datetime
     updated_at: datetime
 

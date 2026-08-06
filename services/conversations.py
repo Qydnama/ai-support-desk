@@ -1,50 +1,22 @@
-from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions import (
     ContactNotFoundError,
-    ConversationMemberRequiredError,
+    ConversationAlreadyAssignedError,
+    ConversationVersionConflictError,
     OrganizationNotFoundError,
-    UserNotFoundError,
 )
 from models.conversations import Conversation
+from models.users import User
 from repositories import contacts as contact_repository
-from repositories import (
-    organization_members as organization_member_repository,
-)
+from repositories import conversations as conversation_repository
 from repositories import organizations as organization_repository
-from repositories import users as user_repository
 from schemas.conversations import (
     ConversationCreate,
     ConversationUpdate,
 )
-
-
-async def _require_active_member(
-    session: AsyncSession,
-    *,
-    organization_id: UUID,
-    user_id: UUID,
-) -> None:
-    user = await user_repository.get_active_by_id(
-        session=session,
-        user_id=user_id,
-    )
-
-    if user is None:
-        raise UserNotFoundError()
-
-    membership = await organization_member_repository.get_by_ids(
-        session=session,
-        organization_id=organization_id,
-        user_id=user_id,
-    )
-
-    if membership is None:
-        raise ConversationMemberRequiredError()
-
 
 async def create_conversation(
     session: AsyncSession,
@@ -90,29 +62,49 @@ async def update_conversation(
     conversation: Conversation,
     data: ConversationUpdate,
 ) -> Conversation:
-    update_data = data.model_dump(exclude_unset=True)
-
-    if "status" in update_data:
-        conversation.status = update_data["status"]
-
-    if "assigned_user_id" in update_data:
-        assigned_user_id = update_data["assigned_user_id"]
-
-        if assigned_user_id is not None:
-            await _require_active_member(
-                session=session,
-                organization_id=conversation.organization_id,
-                user_id=assigned_user_id,
-            )
-
-        conversation.assigned_user_id = assigned_user_id
-
-    conversation.updated_at = datetime.now(UTC)
-
     try:
+        updated_conversation = (
+            await conversation_repository.update_status_if_version(
+                session=session,
+                conversation_id=conversation.id,
+                organization_id=conversation.organization_id,
+                status=data.status,
+                expected_version=data.expected_version,
+            )
+        )
+
+        if updated_conversation is None:
+            raise ConversationVersionConflictError()
+
         await session.commit()
     except Exception:
         await session.rollback()
         raise
 
-    return conversation
+    return updated_conversation
+
+
+async def claim_conversation(
+    session: AsyncSession,
+    conversation: Conversation,
+    current_user: User,
+) -> Conversation:
+    try:
+        claimed_conversation = (
+            await conversation_repository.claim_if_unassigned(
+                session=session,
+                conversation_id=conversation.id,
+                organization_id=conversation.organization_id,
+                user_id=current_user.id,
+            )
+        )
+
+        if claimed_conversation is None:
+            raise ConversationAlreadyAssignedError()
+
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+
+    return claimed_conversation

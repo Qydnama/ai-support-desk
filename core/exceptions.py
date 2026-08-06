@@ -37,6 +37,14 @@ class ConversationMemberRequiredError(AppError):
     message = "The user must be an active organization member"
 
 
+class ConversationAlreadyAssignedError(AppError):
+    message = "Conversation is already assigned"
+
+
+class ConversationVersionConflictError(AppError):
+    message = "Conversation was modified by another request"
+
+
 class ContactNotFoundError(AppError):
     message = "Contact not found"
 
@@ -59,3 +67,9 @@ class OrganizationPermissionDeniedError(AppError):
 
 class LastOrganizationOwnerError(AppError):
     message = "An organization must have at least one owner"
+
+
+class IdempotencyKeyConflictError(AppError):
+    message = (
+        "Idempotency key was already used with a different request"
+    )

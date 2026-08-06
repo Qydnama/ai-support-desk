@@ -52,6 +52,7 @@ app.add_middleware(
     allow_headers=[
         "Authorization",
         "Content-Type",
+        "Idempotency-Key",
     ],
     expose_headers=[
         "Location",

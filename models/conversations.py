@@ -8,6 +8,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Index,
+    Integer,
     String,
     func,
 )
@@ -69,6 +70,11 @@ class Conversation(Base):
         server_default=ConversationStatus.OPEN.value,
         nullable=False,
     )
+    version: Mapped[int] = mapped_column(
+        Integer,
+        server_default="1",
+        nullable=False,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -112,6 +118,10 @@ class Conversation(Base):
         CheckConstraint(
             "status IN ('OPEN', 'PENDING', 'RESOLVED')",
             name="ck_conversations_status_valid",
+        ),
+        CheckConstraint(
+            "version >= 1",
+            name="ck_conversations_version_positive",
         ),
         Index(
             "ix_conversations_organization_created_at_id",

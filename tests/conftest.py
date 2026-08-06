@@ -18,6 +18,7 @@ from main import app
 from models.base import Base
 from models.contacts import Contact
 from models.conversations import Conversation
+from models.idempotency_records import IdempotencyRecord
 from models.messages import Message
 from models.organization_members import OrganizationMember
 from models.organizations import Organization
@@ -79,6 +80,9 @@ async def drop_test_schema() -> None:
 
 async def clear_database() -> None:
     async with test_engine.begin() as connection:
+        await connection.execute(
+            delete(IdempotencyRecord),
+        )
         await connection.execute(
             delete(Message),
         )
@@ -282,3 +286,10 @@ def create_stored_membership(
         )
 
     return create
+
+
+@pytest.fixture
+def concurrent_session_factory(
+    test_database: None,
+) -> async_sessionmaker[AsyncSession]:
+    return session_factory_for_tests

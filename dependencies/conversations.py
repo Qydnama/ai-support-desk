@@ -15,10 +15,10 @@ from dependencies.auth import CurrentUserDep
 from dependencies.database import SessionDep
 from models.conversations import Conversation
 from models.organization_members import OrganizationMember
+from repositories import conversations as conversation_repository
 from repositories import (
     organization_members as organization_member_repository,
 )
-from repositories import conversations as conversation_repository
 from schemas.conversations import ConversationCreate, ConversationFilters
 
 
