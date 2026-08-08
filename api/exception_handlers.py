@@ -22,6 +22,7 @@ from core.exceptions import (
     OrganizationSlugAlreadyExistsError,
     UserEmailAlreadyExistsError,
     UserNotFoundError,
+    LoginRateLimitExceededError,
 )
 
 
@@ -104,6 +105,10 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
         status_code=status.HTTP_409_CONFLICT,
         code="idempotency_key_conflict",
     ),
+    LoginRateLimitExceededError: HttpErrorDetails(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        code="login_rate_limit_exceeded",
+    ),
 }
 
 
@@ -113,9 +118,14 @@ async def app_error_handler(
 ) -> JSONResponse:
     details = HTTP_ERROR_DETAILS[type(exc)]
 
+    headers = dict(details.headers or {})
+
+    if isinstance(exc, LoginRateLimitExceededError):
+        headers["Retry-After"] = str(exc.retry_after_seconds)
+
     return JSONResponse(
         status_code=details.status_code,
-        headers=details.headers,
+        headers=headers,
         content={
             "code": details.code,
             "message": exc.message,

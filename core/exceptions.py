@@ -73,3 +73,14 @@ class IdempotencyKeyConflictError(AppError):
     message = (
         "Idempotency key was already used with a different request"
     )
+
+
+class LoginRateLimitExceededError(AppError):
+    message = "Too many login attempts. Try again later."
+
+    def __init__(
+        self,
+        retry_after_seconds: int,
+    ) -> None:
+        self.retry_after_seconds = retry_after_seconds
+        super().__init__()

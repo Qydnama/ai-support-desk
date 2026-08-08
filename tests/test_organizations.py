@@ -1,12 +1,18 @@
+import asyncio
 from collections.abc import Callable
+import json
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
+import redis.asyncio as redis_asyncio
+from redis.exceptions import RedisError
 
 from core.enums import OrganizationRole
 from models.organization_members import OrganizationMember
 from models.organizations import Organization
 from models.users import User
+from services.organizations import organization_profile_cache_key
+from settings import settings
 
 TEST_PASSWORD = "correct-horse-battery-staple"
 
@@ -95,6 +101,158 @@ def default_owner_headers(
         client,
         email="organization-owner@example.com",
     )
+
+
+def read_cached_value(cache_key: str) -> str | None:
+    async def read() -> str | None:
+        redis = redis_asyncio.from_url(
+            settings.redis_test_url,
+            decode_responses=True,
+        )
+
+        try:
+            return await redis.get(cache_key)
+        finally:
+            await redis.aclose()
+
+    return asyncio.run(read())
+
+
+def write_cached_value(
+    cache_key: str,
+    value: str,
+) -> None:
+    async def write() -> None:
+        redis = redis_asyncio.from_url(
+            settings.redis_test_url,
+            decode_responses=True,
+        )
+
+        try:
+            await redis.set(cache_key, value, ex=60)
+        finally:
+            await redis.aclose()
+
+    asyncio.run(write())
+
+
+def delete_cached_value(cache_key: str) -> None:
+    async def delete() -> None:
+        redis = redis_asyncio.from_url(
+            settings.redis_test_url,
+            decode_responses=True,
+        )
+
+        try:
+            await redis.delete(cache_key)
+        finally:
+            await redis.aclose()
+
+    asyncio.run(delete())
+
+
+class UnavailableRedis:
+    async def get(self, _key: str) -> None:
+        raise RedisError("Redis is unavailable")
+
+    async def set(
+        self,
+        _key: str,
+        _value: str,
+        *,
+        ex: int,
+    ) -> None:
+        raise RedisError("Redis is unavailable")
+
+    async def delete(self, _key: str) -> None:
+        raise RedisError("Redis is unavailable")
+
+
+def test_organization_profile_cache_is_invalidated_after_writes(
+    client: TestClient,
+) -> None:
+    owner = create_user(client)
+    organization = create_organization(client, owner=owner)
+    headers = authorization_headers(client, email=owner["email"])
+    organization_id = UUID(organization["id"])
+    cache_key = organization_profile_cache_key(organization_id)
+
+    try:
+        delete_cached_value(cache_key)
+
+        first_get = client.get(
+            f"/organizations/{organization_id}",
+            headers=headers,
+        )
+
+        assert first_get.status_code == 200
+        assert read_cached_value(cache_key) is not None
+
+        cached_response = {
+            **first_get.json(),
+            "name": "Value from Redis",
+        }
+        write_cached_value(
+            cache_key,
+            json.dumps(cached_response),
+        )
+
+        cache_hit = client.get(
+            f"/organizations/{organization_id}",
+            headers=headers,
+        )
+
+        assert cache_hit.status_code == 200
+        assert cache_hit.json()["name"] == "Value from Redis"
+
+        update_response = client.patch(
+            f"/organizations/{organization_id}",
+            headers=headers,
+            json={"name": "Updated in PostgreSQL"},
+        )
+
+        assert update_response.status_code == 200
+        assert read_cached_value(cache_key) is None
+
+        refreshed_get = client.get(
+            f"/organizations/{organization_id}",
+            headers=headers,
+        )
+
+        assert refreshed_get.status_code == 200
+        assert refreshed_get.json()["name"] == "Updated in PostgreSQL"
+        assert read_cached_value(cache_key) is not None
+
+        delete_response = client.delete(
+            f"/organizations/{organization_id}",
+            headers=headers,
+        )
+
+        assert delete_response.status_code == 204
+        assert read_cached_value(cache_key) is None
+    finally:
+        delete_cached_value(cache_key)
+
+
+def test_organization_profile_falls_back_to_postgresql_when_redis_is_down(
+    client: TestClient,
+) -> None:
+    owner = create_user(client)
+    organization = create_organization(client, owner=owner)
+    headers = authorization_headers(client, email=owner["email"])
+    original_redis = client.app.state.redis
+    client.app.state.redis = UnavailableRedis()
+
+    try:
+        response = client.get(
+            f"/organizations/{organization['id']}",
+            headers=headers,
+        )
+    finally:
+        client.app.state.redis = original_redis
+
+    assert response.status_code == 200
+    assert response.json() == organization
 
 
 def test_create_get_and_list_organization(
@@ -275,10 +433,10 @@ def test_get_missing_organization_and_invalid_uuid(
         headers=headers,
     )
 
-    assert missing_response.status_code == 404
+    assert missing_response.status_code == 403
     assert missing_response.json() == {
-        "code": "organization_not_found",
-        "message": "Organization not found",
+        "code": "organization_member_required",
+        "message": "The user must be an organization member",
     }
     assert invalid_response.status_code == 422
 

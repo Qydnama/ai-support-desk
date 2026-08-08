@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator, Callable, Iterator
 from uuid import UUID, uuid4
 
 import pytest
+import redis.asyncio as redis_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, text
 from sqlalchemy.ext.asyncio import (
@@ -106,6 +107,23 @@ async def clear_database() -> None:
         )
 
 
+async def clear_redis_test_keys() -> None:
+    redis = redis_asyncio.from_url(
+        settings.redis_test_url,
+        decode_responses=True,
+    )
+
+    try:
+        for pattern in (
+            "cache:organization:v1:*",
+            "rate_limit:auth:login:*",
+        ):
+            async for key in redis.scan_iter(match=pattern):
+                await redis.delete(key)
+    finally:
+        await redis.aclose()
+
+
 async def find_stored_user(
     user_id: UUID,
 ) -> User | None:
@@ -186,9 +204,13 @@ def clean_database(
 ) -> Iterator[None]:
     asyncio.run(clear_database())
 
+    asyncio.run(clear_redis_test_keys())
+
     yield
 
     asyncio.run(clear_database())
+
+    asyncio.run(clear_redis_test_keys())
 
 
 @pytest.fixture(scope="session")
@@ -196,7 +218,16 @@ def client(
     test_database: None,
 ) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
-        yield test_client
+        test_redis = redis_asyncio.from_url(
+            settings.redis_test_url,
+            decode_responses=True,
+        )
+        test_client.app.state.redis = test_redis
+
+        try:
+            yield test_client
+        finally:
+            test_client.portal.call(test_redis.aclose)
 
 
 @pytest.fixture(autouse=True)

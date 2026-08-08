@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Response, status
+from fastapi import APIRouter, Cookie, Request, Response, status
 
 from core.exceptions import AuthenticationRequiredError
 from dependencies.auth import CurrentUserDep
 from dependencies.database import SessionDep
+from dependencies.redis import RedisDep
 from schemas.auth import (
     AccessTokenResponse,
     LoginRequest,
@@ -12,6 +13,7 @@ from schemas.auth import (
 )
 from schemas.users import UserRead
 from services import auth as auth_service
+from services import rate_limits as rate_limit_service
 from settings import settings
 
 router = APIRouter(
@@ -75,15 +77,55 @@ async def register_user(
 @router.post(
     "/login",
     summary="Log in",
+    responses={
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "description": "Login rate limit exceeded",
+            "headers": {
+                "Retry-After": {
+                    "description": (
+                        "Seconds until another login attempt is allowed"
+                    ),
+                    "schema": {"type": "integer"},
+                },
+            },
+        },
+    },
 )
 async def login_user(
     data: LoginRequest,
     response: Response,
+    request: Request,
+    redis: RedisDep,
     session: SessionDep,
 ) -> AccessTokenResponse:
+    client_ip = (
+        request.client.host
+        if request.client is not None
+        else "unknown"
+    )
+
+    await rate_limit_service.enforce_login_ip_rate_limit(
+        redis=redis,
+        client_ip=client_ip,
+        max_attempts=settings.login_ip_rate_limit_max_attempts,
+        window_seconds=settings.login_ip_rate_limit_window_seconds,
+    )
+
+    await rate_limit_service.enforce_login_rate_limit(
+        redis=redis,
+        email=str(data.email),
+        max_attempts=settings.login_rate_limit_max_attempts,
+        window_seconds=settings.login_rate_limit_window_seconds,
+    )
+
     user = await auth_service.authenticate_user(
         session=session,
         data=data,
+    )
+
+    await rate_limit_service.clear_login_rate_limit(
+        redis=redis,
+        email=str(data.email),
     )
 
     tokens = await auth_service.issue_tokens(

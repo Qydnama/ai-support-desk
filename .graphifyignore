@@ -1,0 +1,5 @@
+# Graphify's own integration files describe the tool, not this application.
+.codex/
+
+# Generated knowledge-graph artifacts must never be re-indexed as source.
+graphify-out/

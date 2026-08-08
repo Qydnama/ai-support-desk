@@ -1,7 +1,10 @@
+import asyncio
 from collections.abc import Callable
 from uuid import UUID
 
 from fastapi.testclient import TestClient
+import redis.asyncio as redis_asyncio
+from redis.exceptions import RedisError
 
 from core.security import (
     decode_refresh_token,
@@ -10,6 +13,10 @@ from core.security import (
 )
 from models.refresh_sessions import RefreshSession
 from models.users import User
+from services.rate_limits import (
+    login_ip_rate_limit_key,
+    login_rate_limit_key,
+)
 from settings import settings
 
 
@@ -30,6 +37,183 @@ def register_alice(
     assert response.status_code == 201
 
     return response.json()
+
+
+def read_login_rate_limit(email: str) -> str | None:
+    async def read() -> str | None:
+        redis = redis_asyncio.from_url(
+            settings.redis_test_url,
+            decode_responses=True,
+        )
+
+        try:
+            return await redis.get(login_rate_limit_key(email))
+        finally:
+            await redis.aclose()
+
+    return asyncio.run(read())
+
+
+class UnavailableRedis:
+    async def eval(
+        self,
+        _script: str,
+        _numkeys: int,
+        *_args: object,
+    ) -> None:
+        raise RedisError("Redis is unavailable")
+
+    async def delete(self, _key: str) -> None:
+        raise RedisError("Redis is unavailable")
+
+
+def test_login_rate_limit_returns_retry_after(
+    client: TestClient,
+) -> None:
+    password = "correct-horse-battery-staple"
+    register_alice(client, password=password)
+    email = "alice@example.com"
+    cache_key = login_rate_limit_key(email)
+
+    async def seed_limit() -> None:
+        redis = redis_asyncio.from_url(
+            settings.redis_test_url,
+            decode_responses=True,
+        )
+
+        try:
+            await redis.set(
+                cache_key,
+                settings.login_rate_limit_max_attempts,
+                ex=settings.login_rate_limit_window_seconds,
+            )
+        finally:
+            await redis.aclose()
+
+    asyncio.run(seed_limit())
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": email,
+            "password": password,
+        },
+    )
+
+    assert response.status_code == 429
+    assert response.json() == {
+        "code": "login_rate_limit_exceeded",
+        "message": "Too many login attempts. Try again later.",
+    }
+    assert 1 <= int(response.headers["Retry-After"]) <= (
+        settings.login_rate_limit_window_seconds
+    )
+
+
+def test_login_ip_rate_limit_blocks_requests_before_authentication(
+    client: TestClient,
+) -> None:
+    client_ip = "testclient"
+    cache_key = login_ip_rate_limit_key(client_ip)
+
+    async def seed_limit() -> None:
+        redis = redis_asyncio.from_url(
+            settings.redis_test_url,
+            decode_responses=True,
+        )
+
+        try:
+            await redis.set(
+                cache_key,
+                settings.login_ip_rate_limit_max_attempts,
+                ex=settings.login_ip_rate_limit_window_seconds,
+            )
+        finally:
+            await redis.aclose()
+
+    asyncio.run(seed_limit())
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "anyone@example.com",
+            "password": "correct-horse-battery-staple",
+        },
+    )
+
+    assert response.status_code == 429
+    assert response.json()["code"] == "login_rate_limit_exceeded"
+
+
+def test_failed_login_attempts_are_rate_limited(
+    client: TestClient,
+) -> None:
+    password = "correct-horse-battery-staple"
+    register_alice(client, password=password)
+    payload = {
+        "email": "alice@example.com",
+        "password": "wrong-password",
+    }
+
+    for _ in range(settings.login_rate_limit_max_attempts):
+        response = client.post("/auth/login", json=payload)
+        assert response.status_code == 401
+
+    blocked_response = client.post("/auth/login", json=payload)
+
+    assert blocked_response.status_code == 429
+
+
+def test_successful_login_clears_rate_limit_counter(
+    client: TestClient,
+) -> None:
+    password = "correct-horse-battery-staple"
+    email = "alice@example.com"
+    register_alice(client, password=password)
+
+    failed_login = client.post(
+        "/auth/login",
+        json={
+            "email": email,
+            "password": "wrong-password",
+        },
+    )
+
+    assert failed_login.status_code == 401
+    assert read_login_rate_limit(email) == "1"
+
+    successful_login = client.post(
+        "/auth/login",
+        json={
+            "email": email,
+            "password": password,
+        },
+    )
+
+    assert successful_login.status_code == 200
+    assert read_login_rate_limit(email) is None
+
+
+def test_login_falls_open_when_redis_is_unavailable(
+    client: TestClient,
+) -> None:
+    password = "correct-horse-battery-staple"
+    register_alice(client, password=password)
+    original_redis = client.app.state.redis
+    client.app.state.redis = UnavailableRedis()
+
+    try:
+        response = client.post(
+            "/auth/login",
+            json={
+                "email": "alice@example.com",
+                "password": password,
+            },
+        )
+    finally:
+        client.app.state.redis = original_redis
+
+    assert response.status_code == 200
 
 
 def test_register_user_stores_password_hash(

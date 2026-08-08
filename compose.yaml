@@ -25,6 +25,7 @@ services:
 
     environment:
       DATABASE_URL: postgresql+asyncpg://crud:crud_password@db:5432/crud
+      REDIS_URL: redis://redis:6379/0
 
     ports:
       - "8000:8000"
@@ -32,5 +33,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+  
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:

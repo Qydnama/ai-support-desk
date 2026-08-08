@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Response, status
 
 from dependencies.auth import CurrentUserDep
@@ -17,6 +19,7 @@ from dependencies.organizations import (
     OrganizationFiltersQuery,
 )
 from dependencies.pagination import PaginationDep
+from dependencies.redis import RedisDep
 from dependencies.users import ExistingUserDep
 from repositories import (
     organization_members as organization_member_repository,
@@ -83,11 +86,15 @@ async def list_organizations(
     summary="Get an organization",
 )
 async def get_organization(
-    existing_organization: ExistingOrganizationDep,
+    organization_id: UUID,
     _permission: OrganizationReadPermissionDep,
+    session: SessionDep,
+    redis: RedisDep,
 ) -> OrganizationRead:
-    return OrganizationRead.model_validate(
-        existing_organization,
+    return await organization_service.get_organization_profile(
+        session=session,
+        redis=redis,
+        organization_id=organization_id,
     )
 
 
@@ -190,12 +197,14 @@ async def add_organization_member(
 async def update_organization(
     update: OrganizationUpdate,
     existing_organization: ExistingOrganizationDep,
+    redis: RedisDep,
     _permission: OrganizationUpdatePermissionDep,
     session: SessionDep,
 ) -> OrganizationRead:
     updated_organization = (
         await organization_service.update_organization(
             session=session,
+            redis=redis,
             organization=existing_organization,
             data=update,
         )
@@ -214,10 +223,12 @@ async def update_organization(
 async def delete_organization(
     existing_organization: ExistingOrganizationDep,
     _permission: OrganizationDeletePermissionDep,
+    redis: RedisDep,
     session: SessionDep,
 ) -> Response:
     await organization_service.delete_organization(
         session=session,
+        redis=redis,
         organization=existing_organization,
     )
 

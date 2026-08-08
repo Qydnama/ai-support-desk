@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-08-08T04:50:23.700620+00:00",
+  "nodes": {
+    "schemas_organizations_organizationcachedprofile": {
+      "code_fingerprint": "10e11828ccffb6084d036c0767e9718fcd25d519729589fad1e5e46a6055e19a",
+      "label": "OrganizationCachedProfile",
+      "last": "2026-08-08T04:21:02.761143+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-08T04:21:02.761143+00:00",
+          "outcome": "useful",
+          "q": "Как правильно совместить ExistingOrganizationDep и cache-aside без повторного SELECT организации?"
+        }
+      ],
+      "score": 0.999529204,
+      "source_file": "schemas/organizations.py",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
+  "version": 1
+}

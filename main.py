@@ -2,8 +2,13 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from time import perf_counter
 
+import redis.asyncio as redis_asyncio
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from redis.exceptions import RedisError
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from api.exception_handlers import app_error_handler
 from core.exceptions import AppError
@@ -13,6 +18,7 @@ from routers.contacts import router as contacts_router
 from routers.conversations import router as conversations_router
 from routers.organizations import router as organizations_router
 from routers.users import router as users_router
+from settings import settings
 
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -20,10 +26,18 @@ ALLOWED_ORIGINS = [
 ]
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    yield
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    redis_client = redis_asyncio.from_url(
+        settings.redis_url,
+        decode_responses=True,
+    )
+    app.state.redis = redis_client
 
-    await engine.dispose()
+    try:
+        yield
+    finally:
+        await redis_client.aclose()
+        await engine.dispose()
 
 app = FastAPI(
     title="CRUD API",
@@ -84,6 +98,33 @@ async def add_process_time_header(
 )
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get(
+    "/ready",
+    tags=["health"],
+    summary="Check application dependencies",
+        responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "PostgreSQL or Redis is unavailable",
+        },
+    },
+)
+async def readiness_check(
+    request: Request,
+) -> dict[str, str]:
+    try:
+        await request.app.state.redis.ping()
+
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except (RedisError, SQLAlchemyError):
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "not_ready"},
+        )
+
+    return {"status": "ready"}
 
 
 app.include_router(auth_router)

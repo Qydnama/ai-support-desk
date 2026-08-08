@@ -2,7 +2,10 @@ from collections.abc import Callable
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
+from redis.exceptions import RedisError
+from sqlalchemy.exc import SQLAlchemyError
 
+import main
 from models.users import User
 
 TEST_PASSWORD = "correct-horse-battery-staple"
@@ -46,6 +49,63 @@ def test_health_check(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
     assert "X-Process-Time" in response.headers
+
+
+class UnavailableRedis:
+    async def ping(self) -> None:
+        raise RedisError("Redis is unavailable")
+
+
+class UnavailableDatabase:
+    def connect(self) -> None:
+        raise SQLAlchemyError("PostgreSQL is unavailable")
+
+
+def test_readiness_check_reports_dependency_failures(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    ready_response = client.get("/ready")
+
+    assert ready_response.status_code == 200
+    assert ready_response.json() == {"status": "ready"}
+
+    original_redis = client.app.state.redis
+    client.app.state.redis = UnavailableRedis()
+
+    try:
+        redis_down_response = client.get("/ready")
+    finally:
+        client.app.state.redis = original_redis
+
+    assert redis_down_response.status_code == 503
+    assert redis_down_response.json() == {"status": "not_ready"}
+
+    monkeypatch.setattr(main, "engine", UnavailableDatabase())
+
+    database_down_response = client.get("/ready")
+
+    assert database_down_response.status_code == 503
+    assert database_down_response.json() == {"status": "not_ready"}
+
+
+def test_openapi_documents_redis_failure_responses(
+    client: TestClient,
+) -> None:
+    schema = client.get("/openapi.json").json()
+    login_responses = schema["paths"]["/auth/login"]["post"][
+        "responses"
+    ]
+    readiness_responses = schema["paths"]["/ready"]["get"][
+        "responses"
+    ]
+
+    assert login_responses["429"]["headers"]["Retry-After"][
+        "schema"
+    ] == {"type": "integer"}
+    assert readiness_responses["503"]["description"] == (
+        "PostgreSQL or Redis is unavailable"
+    )
 
 
 def test_legacy_user_creation_is_disabled(
