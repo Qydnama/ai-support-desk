@@ -13,6 +13,8 @@ AGENT_PERMISSIONS = frozenset({
     OrganizationPermission.CONVERSATION_UPDATE,
     OrganizationPermission.MESSAGE_READ,
     OrganizationPermission.MESSAGE_CREATE,
+    OrganizationPermission.DOCUMENT_READ,
+    OrganizationPermission.DOCUMENT_CREATE,
 })
 
 

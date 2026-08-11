@@ -16,6 +16,7 @@ from models.base import Base
 
 if TYPE_CHECKING:
     from models.conversations import Conversation
+    from models.documents import Document
     from models.messages import Message
     from models.organization_members import OrganizationMember
 
@@ -55,6 +56,11 @@ class User(Base):
     )
     authored_messages: Mapped[list[Message]] = relationship(
         back_populates="author_user",
+        passive_deletes="all",
+        lazy="raise",
+    )
+    uploaded_documents: Mapped[list[Document]] = relationship(
+        back_populates="uploaded_by_user",
         passive_deletes="all",
         lazy="raise",
     )

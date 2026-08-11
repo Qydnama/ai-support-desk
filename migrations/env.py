@@ -8,10 +8,12 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 import models.contacts
 import models.conversations
+import models.documents
 import models.idempotency_records
 import models.messages
 import models.organization_members
 import models.organizations
+import models.outbox_messages
 import models.refresh_sessions
 import models.users
 from models.base import Base

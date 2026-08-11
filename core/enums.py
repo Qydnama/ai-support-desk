@@ -7,6 +7,13 @@ class ConversationStatus(StrEnum):
     RESOLVED = "RESOLVED"
 
 
+class DocumentStatus(StrEnum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 class MessageSenderType(StrEnum):
     CONTACT = "CONTACT"
     AGENT = "AGENT"
@@ -32,6 +39,9 @@ class OrganizationPermission(StrEnum):
 
     CONTACT_READ = "contact:read"
     CONTACT_CREATE = "contact:create"
+
+    DOCUMENT_READ = "document:read"
+    DOCUMENT_CREATE = "document:create"
 
     CONVERSATION_READ = "conversation:read"
     CONVERSATION_CREATE = "conversation:create"

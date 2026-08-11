@@ -1,21 +1,258 @@
 {
-  "generated_at": "2026-08-08T04:50:23.700620+00:00",
+  "generated_at": "2026-08-11T03:39:49.318833+00:00",
   "nodes": {
-    "schemas_organizations_organizationcachedprofile": {
-      "code_fingerprint": "10e11828ccffb6084d036c0767e9718fcd25d519729589fad1e5e46a6055e19a",
-      "label": "OrganizationCachedProfile",
-      "last": "2026-08-08T04:21:02.761143+00:00",
+    "agents_agent_instructions": {
+      "code_fingerprint": "4e82f08de84b10b90492dcc1340e3b514450d7db53ce20eb730597ace5520698",
+      "label": "Agent Instructions",
+      "last": "2026-08-09T03:33:01.791394+00:00",
       "provenance": [
         {
-          "date": "2026-08-08T04:21:02.761143+00:00",
+          "date": "2026-08-09T03:33:01.791394+00:00",
           "outcome": "useful",
-          "q": "Как правильно совместить ExistingOrganizationDep и cache-aside без повторного SELECT организации?"
+          "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.999529204,
-      "source_file": "schemas/organizations.py",
+      "score": 0.954737551,
+      "source_file": "AGENTS.md",
       "status": "tentative",
       "uses": 1
+    },
+    "agents_implementation_workflow": {
+      "code_fingerprint": "4e82f08de84b10b90492dcc1340e3b514450d7db53ce20eb730597ace5520698",
+      "label": "Implementation workflow",
+      "last": "2026-08-09T03:33:01.791394+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T03:33:01.791394+00:00",
+          "outcome": "useful",
+          "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
+        }
+      ],
+      "score": 0.954737551,
+      "source_file": "AGENTS.md",
+      "status": "tentative",
+      "uses": 1
+    },
+    "agents_project_invariants": {
+      "code_fingerprint": "4e82f08de84b10b90492dcc1340e3b514450d7db53ce20eb730597ace5520698",
+      "label": "Project invariants",
+      "last": "2026-08-09T03:33:01.791394+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T03:33:01.791394+00:00",
+          "outcome": "useful",
+          "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
+        }
+      ],
+      "score": 0.954737551,
+      "source_file": "AGENTS.md",
+      "status": "tentative",
+      "uses": 1
+    },
+    "celery_app": {
+      "code_fingerprint": "f93ecfdda325086be41f2159ba13733cd32164fe19d85b2439d5db9fd7417dc8",
+      "label": "celery_app.py",
+      "last": "2026-08-09T06:57:42.585547+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T06:57:42.585547+00:00",
+          "outcome": "useful",
+          "q": "Как безопасно подключить POST-загрузку документа к worker?"
+        }
+      ],
+      "score": 0.957878163,
+      "source_file": "celery_app.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "claude_architecture": {
+      "code_fingerprint": "2fa68ddad61d4af12c8039060d79b4bc62be602e8f979cda52d38978ff4533dd",
+      "label": "Architecture",
+      "last": "2026-08-09T03:33:01.791394+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T03:33:01.791394+00:00",
+          "outcome": "useful",
+          "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
+        }
+      ],
+      "score": 0.954737551,
+      "source_file": "CLAUDE.md",
+      "status": "tentative",
+      "uses": 1
+    },
+    "core_enums_documentstatus": {
+      "code_fingerprint": "0f23aa3994aa6ec2bc2667a6c46c8fecfb75945ccc8d8ca7e785f45bb3fb3920",
+      "label": "DocumentStatus",
+      "last": "2026-08-09T05:09:25.116844+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T05:09:25.116844+00:00",
+          "outcome": "useful",
+          "q": "Проверить миграцию create documents table"
+        }
+      ],
+      "score": 0.956215257,
+      "source_file": "core/enums.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "core_enums_organizationpermission": {
+      "code_fingerprint": "0f23aa3994aa6ec2bc2667a6c46c8fecfb75945ccc8d8ca7e785f45bb3fb3920",
+      "label": "OrganizationPermission",
+      "last": "2026-08-09T06:09:21.769380+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T06:09:21.769380+00:00",
+          "outcome": "useful",
+          "q": "Куда подключать загрузку документа в существующей архитектуре?"
+        }
+      ],
+      "score": 0.957135396,
+      "source_file": "core/enums.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "models_base_base": {
+      "code_fingerprint": "931cdcc4bbdb925f0eb4334db01d72816772a5207e18e0e1c13bda7741d1fb1a",
+      "label": "Base",
+      "last": "2026-08-09T04:48:41.311722+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T04:48:41.311722+00:00",
+          "outcome": "useful",
+          "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
+        }
+      ],
+      "score": 0.955897257,
+      "source_file": "models/base.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "models_conversations_conversation": {
+      "code_fingerprint": "e0efb4b2af394ff85c22e273749280c7fb806cfa64ae7b7865acad5929b0b579",
+      "label": "Conversation",
+      "last": "2026-08-09T04:48:41.311722+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T04:48:41.311722+00:00",
+          "outcome": "useful",
+          "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
+        }
+      ],
+      "score": 0.955897257,
+      "source_file": "models/conversations.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "models_documents_document": {
+      "code_fingerprint": "14c5527c5f54c2f991ca8bf49f5c1fc781ea7ac5dc2c9212305fbcf89ac6c3a1",
+      "label": "Document",
+      "last": "2026-08-09T06:57:42.585547+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T06:57:42.585547+00:00",
+          "outcome": "useful",
+          "q": "Как безопасно подключить POST-загрузку документа к worker?"
+        },
+        {
+          "date": "2026-08-09T06:09:21.769380+00:00",
+          "outcome": "useful",
+          "q": "Куда подключать загрузку документа в существующей архитектуре?"
+        },
+        {
+          "date": "2026-08-09T05:57:45.807669+00:00",
+          "outcome": "useful",
+          "q": "Как добавить настоящий upload pipeline Document после локального storage?"
+        },
+        {
+          "date": "2026-08-09T05:09:25.116844+00:00",
+          "outcome": "useful",
+          "q": "Проверить миграцию create documents table"
+        }
+      ],
+      "score": 3.828186092,
+      "source_file": "models/documents.py",
+      "status": "preferred",
+      "uses": 4
+    },
+    "models_organizations_organization": {
+      "code_fingerprint": "4b2da3b5af8f15bc8cedf4476fca85ee10e66f67ab468f36d9bb36d20b66328a",
+      "label": "Organization",
+      "last": "2026-08-09T05:57:45.807669+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T05:57:45.807669+00:00",
+          "outcome": "useful",
+          "q": "Как добавить настоящий upload pipeline Document после локального storage?"
+        },
+        {
+          "date": "2026-08-09T05:09:25.116844+00:00",
+          "outcome": "useful",
+          "q": "Проверить миграцию create documents table"
+        },
+        {
+          "date": "2026-08-09T04:48:41.311722+00:00",
+          "outcome": "useful",
+          "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
+        }
+      ],
+      "score": 2.869069791,
+      "source_file": "models/organizations.py",
+      "status": "preferred",
+      "uses": 3
+    },
+    "models_users_user": {
+      "code_fingerprint": "4ad027787c0cc760230103b805b527142c84978b5144d05113883b2360170c21",
+      "label": "User",
+      "last": "2026-08-09T05:57:45.807669+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T05:57:45.807669+00:00",
+          "outcome": "useful",
+          "q": "Как добавить настоящий upload pipeline Document после локального storage?"
+        },
+        {
+          "date": "2026-08-09T05:09:25.116844+00:00",
+          "outcome": "useful",
+          "q": "Проверить миграцию create documents table"
+        },
+        {
+          "date": "2026-08-09T04:48:41.311722+00:00",
+          "outcome": "useful",
+          "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
+        }
+      ],
+      "score": 2.869069791,
+      "source_file": "models/users.py",
+      "status": "preferred",
+      "uses": 3
+    },
+    "services_document_storage_documentstorage": {
+      "code_fingerprint": "a68c2daaf9fdf93ba732055e02a442f0ec94f569f13f79fc8544ea13de7ada3d",
+      "label": "DocumentStorage",
+      "last": "2026-08-09T06:57:42.585547+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-09T06:57:42.585547+00:00",
+          "outcome": "useful",
+          "q": "Как безопасно подключить POST-загрузку документа к worker?"
+        },
+        {
+          "date": "2026-08-09T06:09:21.769380+00:00",
+          "outcome": "useful",
+          "q": "Куда подключать загрузку документа в существующей архитектуре?"
+        },
+        {
+          "date": "2026-08-09T05:57:45.807669+00:00",
+          "outcome": "useful",
+          "q": "Как добавить настоящий upload pipeline Document после локального storage?"
+        }
+      ],
+      "score": 2.871970836,
+      "source_file": "services/document_storage.py",
+      "status": "preferred",
+      "uses": 3
     }
   },
   "version": 1

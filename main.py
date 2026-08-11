@@ -16,6 +16,7 @@ from database import engine
 from routers.auth import router as auth_router
 from routers.contacts import router as contacts_router
 from routers.conversations import router as conversations_router
+from routers.documents import router as documents_router
 from routers.organizations import router as organizations_router
 from routers.users import router as users_router
 from settings import settings
@@ -132,3 +133,4 @@ app.include_router(contacts_router)
 app.include_router(conversations_router)
 app.include_router(organizations_router)
 app.include_router(users_router)
+app.include_router(documents_router)

@@ -19,10 +19,12 @@ from main import app
 from models.base import Base
 from models.contacts import Contact
 from models.conversations import Conversation
+from models.documents import Document
 from models.idempotency_records import IdempotencyRecord
 from models.messages import Message
 from models.organization_members import OrganizationMember
 from models.organizations import Organization
+from models.outbox_messages import OutboxMessage
 from models.refresh_sessions import RefreshSession
 from models.users import User
 from settings import settings
@@ -81,6 +83,12 @@ async def drop_test_schema() -> None:
 
 async def clear_database() -> None:
     async with test_engine.begin() as connection:
+        await connection.execute(
+            delete(OutboxMessage),
+        )
+        await connection.execute(
+            delete(Document),
+        )
         await connection.execute(
             delete(IdempotencyRecord),
         )

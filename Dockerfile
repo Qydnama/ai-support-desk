@@ -24,7 +24,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PATH="/app/.venv/bin:$PATH"
 
 RUN addgroup --system app \
-    && adduser --system --ingroup app app
+    && adduser --system --ingroup app app \
+    && mkdir -p /data/documents /data/celery-beat \
+    && chown -R app:app /data
 
 USER app
 

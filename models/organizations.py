@@ -13,6 +13,7 @@ from models.base import Base
 if TYPE_CHECKING:
     from models.contacts import Contact
     from models.conversations import Conversation
+    from models.documents import Document
     from models.organization_members import OrganizationMember
 
 class Organization(Base):
@@ -43,6 +44,12 @@ class Organization(Base):
         lazy="raise",
     )
     contacts: Mapped[list[Contact]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="raise",
+    )
+    documents: Mapped[list[Document]] = relationship(
         back_populates="organization",
         cascade="all, delete-orphan",
         passive_deletes=True,

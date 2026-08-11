@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr
@@ -47,6 +48,34 @@ class Settings(BaseSettings):
     )
     login_ip_rate_limit_window_seconds: int = Field(
         default=60,
+        ge=1,
+        le=3_600,
+    )
+    celery_broker_url: str
+    celery_result_backend: str
+    document_storage_path: Path
+    document_upload_max_bytes: int = Field(
+        default=1_048_576,
+        ge=1,
+        le=10_485_760,
+    )
+    document_processing_stale_after_seconds: int = Field(
+        default=600,
+        ge=60,
+        le=86_400,
+    )
+    document_maintenance_interval_seconds: int = Field(
+        default=60,
+        ge=10,
+        le=3_600,
+    )
+    outbox_publish_batch_size: int = Field(
+        default=100,
+        ge=1,
+        le=1_000,
+    )
+    outbox_publish_interval_seconds: int = Field(
+        default=10,
         ge=1,
         le=3_600,
     )

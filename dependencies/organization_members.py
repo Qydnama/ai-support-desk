@@ -172,3 +172,23 @@ ContactCreatePermissionDep = Annotated[
         ),
     ),
 ]
+
+
+DocumentReadPermissionDep = Annotated[
+    OrganizationMember,
+    Depends(
+        require_organization_permission(
+            OrganizationPermission.DOCUMENT_READ,
+        ),
+    ),
+]
+
+
+DocumentCreatePermissionDep = Annotated[
+    OrganizationMember,
+    Depends(
+        require_organization_permission(
+            OrganizationPermission.DOCUMENT_CREATE,
+        ),
+    ),
+]

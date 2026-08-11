@@ -23,9 +23,15 @@ services:
     build:
       context: .
 
+    env_file:
+      - .env
+
     environment:
       DATABASE_URL: postgresql+asyncpg://crud:crud_password@db:5432/crud
       REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: amqp://crud:crud_rabbitmq_password@rabbitmq:5672/crud
+      CELERY_RESULT_BACKEND: disabled://
+      DOCUMENT_STORAGE_PATH: /data/documents
 
     ports:
       - "8000:8000"
@@ -35,7 +41,115 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    volumes:
+      - document_data:/data/documents
   
+  worker:
+    build:
+      context: .
+
+    env_file:
+      - .env
+
+    command: celery -A celery_app.celery_app worker --loglevel=INFO -E --without-mingle --without-gossip
+
+    environment:
+      DATABASE_URL: postgresql+asyncpg://crud:crud_password@db:5432/crud
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: amqp://crud:crud_rabbitmq_password@rabbitmq:5672/crud
+      CELERY_RESULT_BACKEND: disabled://
+      DOCUMENT_STORAGE_PATH: /data/documents
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    volumes:
+      - document_data:/data/documents
+
+  flower:
+    profiles:
+      - tools
+
+    build:
+      context: .
+
+    env_file:
+      - .env
+      - .env.flower
+
+    command:
+      - sh
+      - -c
+      - |
+        test -n "$${FLOWER_BASIC_AUTH}" || {
+          echo "FLOWER_BASIC_AUTH must be set in .env" >&2
+          exit 1
+        }
+        exec celery -A celery_app.celery_app flower --port=5555 --basic_auth="$${FLOWER_BASIC_AUTH}"
+
+    environment:
+      CELERY_BROKER_URL: amqp://crud:crud_rabbitmq_password@rabbitmq:5672/crud
+      CELERY_RESULT_BACKEND: disabled://
+
+    ports:
+      - "127.0.0.1:5555:5555"
+
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: .
+
+    env_file:
+      - .env
+
+    command: celery -A celery_app.celery_app beat --loglevel=INFO --schedule=/data/celery-beat/celerybeat-schedule
+
+    environment:
+      DATABASE_URL: postgresql+asyncpg://crud:crud_password@db:5432/crud
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: amqp://crud:crud_rabbitmq_password@rabbitmq:5672/crud
+      CELERY_RESULT_BACKEND: disabled://
+      DOCUMENT_STORAGE_PATH: /data/documents
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    volumes:
+      - celery_beat_data:/data/celery-beat
+
+  rabbitmq:
+    image: rabbitmq:4.3.1-management
+    environment:
+      RABBITMQ_DEFAULT_USER: crud
+      RABBITMQ_DEFAULT_PASS: crud_rabbitmq_password
+      RABBITMQ_DEFAULT_VHOST: crud
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7.4-alpine
     ports:
@@ -48,3 +162,6 @@ services:
 
 volumes:
   postgres_data:
+  rabbitmq_data:
+  document_data:
+  celery_beat_data:

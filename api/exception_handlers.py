@@ -12,17 +12,22 @@ from core.exceptions import (
     ConversationMemberRequiredError,
     ConversationNotFoundError,
     ConversationVersionConflictError,
+    DocumentEncodingInvalidError,
+    DocumentFilenameRequiredError,
+    DocumentNotFoundError,
+    DocumentTooLargeError,
     IdempotencyKeyConflictError,
     LastOrganizationOwnerError,
+    LoginRateLimitExceededError,
     OrganizationMemberAlreadyExistsError,
     OrganizationMemberNotFoundError,
     OrganizationMemberRequiredError,
     OrganizationNotFoundError,
     OrganizationPermissionDeniedError,
     OrganizationSlugAlreadyExistsError,
+    UnsupportedDocumentContentTypeError,
     UserEmailAlreadyExistsError,
     UserNotFoundError,
-    LoginRateLimitExceededError,
 )
 
 
@@ -108,6 +113,26 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
     LoginRateLimitExceededError: HttpErrorDetails(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         code="login_rate_limit_exceeded",
+    ),
+    DocumentNotFoundError: HttpErrorDetails(
+        status_code=status.HTTP_404_NOT_FOUND,
+        code="document_not_found",
+    ),
+    DocumentFilenameRequiredError: HttpErrorDetails(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        code="document_filename_required",
+    ),
+    UnsupportedDocumentContentTypeError: HttpErrorDetails(
+        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        code="document_content_type_not_supported",
+    ),
+    DocumentTooLargeError: HttpErrorDetails(
+        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+        code="document_too_large",
+    ),
+    DocumentEncodingInvalidError: HttpErrorDetails(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        code="document_encoding_invalid",
     ),
 }
 

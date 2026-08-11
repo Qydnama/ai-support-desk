@@ -84,3 +84,23 @@ class LoginRateLimitExceededError(AppError):
     ) -> None:
         self.retry_after_seconds = retry_after_seconds
         super().__init__()
+
+
+class DocumentNotFoundError(AppError):
+    message = "Document not found"
+
+
+class DocumentFilenameRequiredError(AppError):
+    message = "Document filename is required"
+
+
+class UnsupportedDocumentContentTypeError(AppError):
+    message = "Only text/plain documents are supported"
+
+
+class DocumentTooLargeError(AppError):
+    message = "Document is too large"
+
+
+class DocumentEncodingInvalidError(AppError):
+    message = "Document must be valid UTF-8 text"
