@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T03:39:49.318833+00:00",
+  "generated_at": "2026-08-12T06:34:07.356515+00:00",
   "nodes": {
     "agents_agent_instructions": {
       "code_fingerprint": "4e82f08de84b10b90492dcc1340e3b514450d7db53ce20eb730597ace5520698",
@@ -12,7 +12,7 @@
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.954737551,
+      "score": 0.930325862,
       "source_file": "AGENTS.md",
       "status": "tentative",
       "uses": 1
@@ -28,7 +28,7 @@
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.954737551,
+      "score": 0.930325862,
       "source_file": "AGENTS.md",
       "status": "tentative",
       "uses": 1
@@ -44,26 +44,31 @@
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.954737551,
+      "score": 0.930325862,
       "source_file": "AGENTS.md",
       "status": "tentative",
       "uses": 1
     },
     "celery_app": {
-      "code_fingerprint": "f93ecfdda325086be41f2159ba13733cd32164fe19d85b2439d5db9fd7417dc8",
+      "code_fingerprint": "cd976c8bb47db283cf01a1025ebbfe38e7f3eccb6e1a6e2118df43792cd284ce",
       "label": "celery_app.py",
-      "last": "2026-08-09T06:57:42.585547+00:00",
+      "last": "2026-08-12T06:31:26.163825+00:00",
       "provenance": [
+        {
+          "date": "2026-08-12T06:31:26.163825+00:00",
+          "outcome": "useful",
+          "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
+        },
         {
           "date": "2026-08-09T06:57:42.585547+00:00",
           "outcome": "useful",
           "q": "Как безопасно подключить POST-загрузку документа к worker?"
         }
       ],
-      "score": 0.957878163,
+      "score": 1.933343067,
       "source_file": "celery_app.py",
-      "status": "tentative",
-      "uses": 1
+      "status": "preferred",
+      "uses": 2
     },
     "claude_architecture": {
       "code_fingerprint": "2fa68ddad61d4af12c8039060d79b4bc62be602e8f979cda52d38978ff4533dd",
@@ -76,7 +81,7 @@
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.954737551,
+      "score": 0.930325862,
       "source_file": "CLAUDE.md",
       "status": "tentative",
       "uses": 1
@@ -92,7 +97,7 @@
           "q": "Проверить миграцию create documents table"
         }
       ],
-      "score": 0.956215257,
+      "score": 0.931765785,
       "source_file": "core/enums.py",
       "status": "tentative",
       "uses": 1
@@ -108,7 +113,7 @@
           "q": "Куда подключать загрузку документа в существующей архитектуре?"
         }
       ],
-      "score": 0.957135396,
+      "score": 0.932662397,
       "source_file": "core/enums.py",
       "status": "tentative",
       "uses": 1
@@ -124,7 +129,7 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 0.955897257,
+      "score": 0.931455916,
       "source_file": "models/base.py",
       "status": "tentative",
       "uses": 1
@@ -140,7 +145,7 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 0.955897257,
+      "score": 0.931455916,
       "source_file": "models/conversations.py",
       "status": "tentative",
       "uses": 1
@@ -148,8 +153,13 @@
     "models_documents_document": {
       "code_fingerprint": "14c5527c5f54c2f991ca8bf49f5c1fc781ea7ac5dc2c9212305fbcf89ac6c3a1",
       "label": "Document",
-      "last": "2026-08-09T06:57:42.585547+00:00",
+      "last": "2026-08-12T06:31:26.163825+00:00",
       "provenance": [
+        {
+          "date": "2026-08-12T06:31:26.163825+00:00",
+          "outcome": "useful",
+          "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
+        },
         {
           "date": "2026-08-09T06:57:42.585547+00:00",
           "outcome": "useful",
@@ -171,10 +181,10 @@
           "q": "Проверить миграцию create documents table"
         }
       ],
-      "score": 3.828186092,
+      "score": 4.730260081,
       "source_file": "models/documents.py",
       "status": "preferred",
-      "uses": 4
+      "uses": 5
     },
     "models_organizations_organization": {
       "code_fingerprint": "4b2da3b5af8f15bc8cedf4476fca85ee10e66f67ab468f36d9bb36d20b66328a",
@@ -197,10 +207,26 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 2.869069791,
+      "score": 2.795710534,
       "source_file": "models/organizations.py",
       "status": "preferred",
       "uses": 3
+    },
+    "models_outbox_messages_outboxmessage": {
+      "code_fingerprint": "2d5c9136cab5162600ded49ba87a5787a977b7eb5b2dec4c9fe895fb7ae208ff",
+      "label": "OutboxMessage",
+      "last": "2026-08-12T06:31:26.163825+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T06:31:26.163825+00:00",
+          "outcome": "useful",
+          "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
+        }
+      ],
+      "score": 0.999956895,
+      "source_file": "models/outbox_messages.py",
+      "status": "tentative",
+      "uses": 1
     },
     "models_users_user": {
       "code_fingerprint": "4ad027787c0cc760230103b805b527142c84978b5144d05113883b2360170c21",
@@ -223,16 +249,37 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 2.869069791,
+      "score": 2.795710534,
       "source_file": "models/users.py",
       "status": "preferred",
       "uses": 3
     },
+    "routers_documents_upload_document": {
+      "code_fingerprint": "efa7778c0cb41736b5211869c9f357c126c565e01ce5625cf985a74aa0365e72",
+      "label": "upload_document()",
+      "last": "2026-08-12T06:31:26.163825+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T06:31:26.163825+00:00",
+          "outcome": "useful",
+          "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
+        }
+      ],
+      "score": 0.999956895,
+      "source_file": "routers/documents.py",
+      "status": "tentative",
+      "uses": 1
+    },
     "services_document_storage_documentstorage": {
       "code_fingerprint": "a68c2daaf9fdf93ba732055e02a442f0ec94f569f13f79fc8544ea13de7ada3d",
       "label": "DocumentStorage",
-      "last": "2026-08-09T06:57:42.585547+00:00",
+      "last": "2026-08-12T06:31:26.163825+00:00",
       "provenance": [
+        {
+          "date": "2026-08-12T06:31:26.163825+00:00",
+          "outcome": "useful",
+          "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
+        },
         {
           "date": "2026-08-09T06:57:42.585547+00:00",
           "outcome": "useful",
@@ -249,10 +296,26 @@
           "q": "Как добавить настоящий upload pipeline Document после локального storage?"
         }
       ],
-      "score": 2.871970836,
+      "score": 3.798494296,
       "source_file": "services/document_storage.py",
       "status": "preferred",
-      "uses": 3
+      "uses": 4
+    },
+    "services_documents_create_document": {
+      "code_fingerprint": "6ab2622a443047d0aae9e91c23b2539e448abb7a309f06bc05c2334734df8ed3",
+      "label": "create_document()",
+      "last": "2026-08-12T06:31:26.163825+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T06:31:26.163825+00:00",
+          "outcome": "useful",
+          "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
+        }
+      ],
+      "score": 0.999956895,
+      "source_file": "services/documents.py",
+      "status": "tentative",
+      "uses": 1
     }
   },
   "version": 1

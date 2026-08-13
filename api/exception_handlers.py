@@ -15,6 +15,7 @@ from core.exceptions import (
     DocumentEncodingInvalidError,
     DocumentFilenameRequiredError,
     DocumentNotFoundError,
+    DocumentStorageUnavailableError,
     DocumentTooLargeError,
     IdempotencyKeyConflictError,
     LastOrganizationOwnerError,
@@ -133,6 +134,10 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
     DocumentEncodingInvalidError: HttpErrorDetails(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         code="document_encoding_invalid",
+    ),
+    DocumentStorageUnavailableError: HttpErrorDetails(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        code="document_storage_unavailable",
     ),
 }
 

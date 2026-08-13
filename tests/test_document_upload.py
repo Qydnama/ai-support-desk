@@ -111,7 +111,12 @@ def test_upload_document_saves_file_and_queues_processing(
     assert "storage_key" not in document
     assert response.headers["location"] == f"{path}/{document['id']}"
     assert (
-        tmp_path / "documents" / f"{document['id']}.txt"
+        tmp_path
+        / "organizations"
+        / organization["id"]
+        / "documents"
+        / document["id"]
+        / "original.txt"
     ).read_bytes() == b"Knowledge base guide"
     assert queued_tasks == [
         ("outbox.publish_pending", None),

@@ -22,3 +22,7 @@ class DocumentRead(BaseModel):
     processing_started_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class DocumentDownloadRead(BaseModel):
+    download_url: str

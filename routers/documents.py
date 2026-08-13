@@ -16,7 +16,10 @@ from dependencies.organization_members import (
 from dependencies.organizations import ExistingOrganizationDep
 from dependencies.pagination import PaginationDep
 from repositories import documents as document_repository
-from schemas.documents import DocumentRead
+from schemas.documents import (
+    DocumentDownloadRead,
+    DocumentRead,
+)
 from services import documents as document_service
 from settings import settings
 
@@ -67,6 +70,24 @@ async def get_document(
     _permission: DocumentReadPermissionDep,
 ) -> DocumentRead:
     return DocumentRead.model_validate(document)
+
+
+@router.get(
+    "/{document_id}/download",
+    status_code=status.HTTP_200_OK,
+    summary="Create a temporary document download URL",
+)
+async def get_document_download_url(
+    document: ExistingDocumentDep,
+    _permission: DocumentReadPermissionDep,
+) -> DocumentDownloadRead:
+    download_url = (
+        await document_service.create_document_download_url(document)
+    )
+
+    return DocumentDownloadRead(
+        download_url=download_url,
+    )
 
 
 @router.post(

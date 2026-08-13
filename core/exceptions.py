@@ -104,3 +104,7 @@ class DocumentTooLargeError(AppError):
 
 class DocumentEncodingInvalidError(AppError):
     message = "Document must be valid UTF-8 text"
+
+
+class DocumentStorageUnavailableError(AppError):
+    message = "Document storage is temporarily unavailable"

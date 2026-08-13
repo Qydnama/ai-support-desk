@@ -1,4 +1,6 @@
 import asyncio
+from datetime import timedelta
+from hashlib import sha256
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +15,10 @@ from models.documents import Document
 from models.organizations import Organization
 from models.outbox_messages import OutboxMessage
 from models.users import User
-from services.document_storage import get_document_storage
+from services.document_storage import (
+    create_document_storage_key,
+    get_document_storage,
+)
 from settings import settings
 
 SUPPORTED_DOCUMENT_CONTENT_TYPE = "text/plain"
@@ -61,7 +66,10 @@ async def create_document(
 
     document_id = uuid4()
     storage = get_document_storage()
-    storage_key = storage.create_storage_key(document_id)
+    storage_key = create_document_storage_key(
+        organization.id,
+        document_id,
+    )
 
     document = Document(
         id=document_id,
@@ -70,6 +78,8 @@ async def create_document(
         original_filename=normalized_filename,
         content_type=normalized_content_type,
         storage_key=storage_key,
+        size_bytes=len(content),
+        sha256=sha256(content).hexdigest(),
     )
 
     try:
@@ -77,6 +87,7 @@ async def create_document(
             storage.write_bytes,
             storage_key,
             content,
+            content_type=normalized_content_type,
         )
         session.add_all(
             [
@@ -102,3 +113,15 @@ async def create_document(
         raise
 
     return document
+
+
+async def create_document_download_url(
+    document: Document,
+) -> str:
+    return await asyncio.to_thread(
+        get_document_storage().presigned_get_url,
+        document.storage_key,
+        expires=timedelta(
+            seconds=settings.minio_presigned_get_expires_seconds,
+        ),
+    )

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     DateTime,
     Enum,
@@ -56,6 +57,14 @@ class Document(Base):
     storage_key: Mapped[str] = mapped_column(
         String(512),
         nullable=False,
+    )
+    size_bytes: Mapped[int | None] = mapped_column(
+        BigInteger,
+        nullable=True,
+    )
+    sha256: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
     )
     status: Mapped[DocumentStatus] = mapped_column(
         Enum(
@@ -123,6 +132,17 @@ class Document(Base):
                 "AND char_length(storage_key) BETWEEN 1 AND 512"
             ),
             name="ck_documents_storage_key_valid",
+        ),
+        CheckConstraint(
+            "size_bytes IS NULL OR size_bytes >= 0",
+            name="ck_documents_size_bytes_valid",
+        ),
+        CheckConstraint(
+            (
+                "sha256 IS NULL OR "
+                "sha256 ~ '^[0-9a-f]{64}$'"
+            ),
+            name="ck_documents_sha256_valid",
         ),
         CheckConstraint(
             "status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED')",

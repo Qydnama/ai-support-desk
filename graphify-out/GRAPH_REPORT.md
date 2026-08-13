@@ -1,30 +1,30 @@
-# Graph Report - CRUD  (2026-08-11)
+# Graph Report - CRUD  (2026-08-12)
 
 ## Corpus Check
-- 123 files · ~27,369 words
+- 130 files · ~29,409 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 810 nodes · 2409 edges · 53 communities (51 shown, 2 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 121 edges (avg confidence: 0.6)
+- 865 nodes · 2554 edges · 61 communities (59 shown, 2 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 141 edges (avg confidence: 0.61)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9b4402f7`
+- Built from commit: `d8c7ecf6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- upload_document
+- Document
 - Q: Как добавить настоящий upload pipeline Document после локального storage?
 - User
 - test_auth.py
 - services/users.py
-- routers/conversations.py
-- test_document_processing.py
+- dependencies/conversations.py
+- settings.py
 - test_organizations.py
-- repositories/users.py
-- services/organizations.py
+- tasks/documents.py
+- Organization
 - test_spa_preflight_allows_authorization_header
 - crud
 - test_conversations.py
@@ -34,50 +34,57 @@
 - Q: Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям
 - Q: Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?
 - exceptions.py
-- settings.py
+- OutboxMessage
 - Q: Как безопасно подключить POST-загрузку документа к worker?
 - test_users.py
 - Q: Куда подключать загрузку документа в существующей архитектуре?
 - get_pagination
 - Q: Проверить миграцию create documents table
-- test_document_api.py
-- OrganizationMember
-- create_contact
+- FastAPI
+- add_process_time_header
+- routers/contacts.py
 - Document-processing runbook
-- test_contacts.py
+- get_current_user
+- redis.py
+- Q: Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи
+- Q: Дальше: разобрать существующий Docker стенд перед добавлением MinIO
+- Q: Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия
+- Q: Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO
+- dependencies/users.py
+- test_document_api.py
 
 ## God Nodes (most connected - your core abstractions)
-1. `User` - 62 edges
-2. `Organization` - 40 edges
+1. `User` - 64 edges
+2. `Organization` - 42 edges
 3. `OrganizationRole` - 39 edges
 4. `OrganizationMember` - 38 edges
-5. `AppError` - 30 edges
-6. `Document` - 29 edges
+5. `Document` - 33 edges
+6. `AppError` - 31 edges
 7. `Conversation` - 28 edges
-8. `HttpErrorDetails` - 25 edges
+8. `HttpErrorDetails` - 26 edges
 9. `Base` - 24 edges
 10. `create_user()` - 23 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `test_document_task_marks_permanent_error_without_retry()` --indirect_call--> `mark_failed()`  [INFERRED]
   tests/test_document_task.py → repositories/documents.py
-- `HttpErrorDetails` --uses--> `LoginRateLimitExceededError`  [INFERRED]
+- `HttpErrorDetails` --uses--> `AuthenticationRequiredError`  [INFERRED]
+  api/exception_handlers.py → core/exceptions.py
+- `HttpErrorDetails` --uses--> `OrganizationPermissionDeniedError`  [INFERRED]
   api/exception_handlers.py → core/exceptions.py
 - `Conversation` --uses--> `ConversationStatus`  [INFERRED]
   models/conversations.py → core/enums.py
-- `DocumentRead` --uses--> `DocumentStatus`  [INFERRED]
-  schemas/documents.py → core/enums.py
-- `DisposableTestEngine` --uses--> `DocumentStatus`  [INFERRED]
-  tests/test_document_processing.py → core/enums.py
+- `OrganizationMember` --uses--> `OrganizationRole`  [INFERRED]
+  models/organization_members.py → core/enums.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (53 total, 2 thin omitted)
+## Communities (61 total, 2 thin omitted)
 
-### Community 0 - "upload_document"
-Cohesion: 0.16
-Nodes (16): DocumentCreatePermissionDep, DocumentReadPermissionDep, DocumentUploadFile, ExistingDocumentDep, get_document(), list_documents(), CurrentUserDep, ExistingOrganizationDep (+8 more)
+### Community 0 - "Document"
+Cohesion: 0.06
+Nodes (68): DocumentStatus, DocumentCreatePermissionDep, DocumentReadPermissionDep, DocumentUploadFile, ExistingDocumentDep, Document, parametrize, claim_pending_for_processing() (+60 more)
 
 ### Community 1 - "Q: Как добавить настоящий upload pipeline Document после локального storage?"
 Cohesion: 0.40
@@ -85,39 +92,39 @@ Nodes (4): Answer, Outcome, Q: Как добавить настоящий upload
 
 ### Community 2 - "User"
 Cohesion: 0.07
-Nodes (70): Connection, DocumentStatus, MessageSenderType, is_contact_email_unique_violation(), is_idempotency_record_organization_key_unique_violation(), is_organization_member_primary_key_violation(), DeclarativeBase, fixture (+62 more)
+Nodes (63): Connection, MessageSenderType, DeclarativeBase, get_existing_contact(), SessionDep, UUID, fixture, do_run_migrations() (+55 more)
 
 ### Community 3 - "test_auth.py"
-Cohesion: 0.05
-Nodes (86): Any, LoginRateLimitExceededError, create_access_token(), create_refresh_token(), decode_access_token(), decode_refresh_token(), hash_password(), hash_refresh_token() (+78 more)
+Cohesion: 0.06
+Nodes (87): Any, AuthenticationRequiredError, create_access_token(), create_refresh_token(), decode_access_token(), decode_refresh_token(), hash_password(), hash_refresh_token() (+79 more)
 
 ### Community 4 - "services/users.py"
-Cohesion: 0.28
-Nodes (13): is_user_email_unique_violation(), BaseModel, field_validator, UserBase, UserCreate, UserReplace, UserUpdate, _commit() (+5 more)
+Cohesion: 0.12
+Nodes (30): CurrentUserAccountDep, is_user_email_unique_violation(), put, get_current_user(), CurrentUserDep, get, delete_user(), get_user() (+22 more)
 
-### Community 5 - "routers/conversations.py"
-Cohesion: 0.10
-Nodes (41): ConversationCreatePermissionDep, ConversationListPermissionDep, ConversationReadPermissionDep, ConversationUpdatePermissionDep, ConversationStatus, ExistingConversationDep, IdempotencyKeyHeader, MessageCreatePermissionDep (+33 more)
+### Community 5 - "dependencies/conversations.py"
+Cohesion: 0.08
+Nodes (46): ConversationCreatePermissionDep, ConversationListPermissionDep, ConversationReadPermissionDep, ConversationUpdatePermissionDep, ConversationStatus, OrganizationPermission, get_existing_conversation(), ConversationFiltersQuery (+38 more)
 
-### Community 6 - "test_document_processing.py"
-Cohesion: 0.11
-Nodes (32): parametrize, claim_pending_for_processing(), get_by_id(), list_by_organization(), mark_completed(), mark_failed(), mark_stale_processing_as_failed(), AsyncSession (+24 more)
+### Community 6 - "settings.py"
+Cohesion: 0.23
+Nodes (3): BaseSettings, Settings, test_document_task_marks_permanent_error_without_retry()
 
 ### Community 7 - "test_organizations.py"
 Cohesion: 0.24
 Nodes (36): OrganizationRole, create_stored_membership(), read_stored_membership(), authorization_headers(), create_organization(), create_user(), default_owner_headers(), delete_cached_value() (+28 more)
 
-### Community 9 - "repositories/users.py"
-Cohesion: 0.53
-Nodes (5): get_active_by_email(), get_active_by_id(), list_active(), AsyncSession, UUID
+### Community 9 - "tasks/documents.py"
+Cohesion: 0.33
+Nodes (8): Task, DocumentProcessingTask, fail_stale_processing_documents(), OutboxPublisherTask, process_document(), publish_pending_outbox_messages(), Exception, test_stale_document_task_runs_maintenance_service()
 
-### Community 10 - "services/organizations.py"
-Cohesion: 0.07
-Nodes (56): is_organization_slug_unique_violation(), ExistingOrganizationMemberDep, ExistingUserDep, MemberCreatePermissionDep, MemberDeletePermissionDep, MemberReadPermissionDep, MemberRoleUpdatePermissionDep, OrganizationDeletePermissionDep (+48 more)
+### Community 10 - "Organization"
+Cohesion: 0.06
+Nodes (81): OrganizationPermissionDeniedError, is_idempotency_record_organization_key_unique_violation(), is_organization_member_primary_key_violation(), is_organization_slug_unique_violation(), get_current_organization_member(), get_existing_organization_member(), CurrentUserDep, SessionDep (+73 more)
 
 ### Community 32 - "test_conversations.py"
 Cohesion: 0.36
-Nodes (28): MonkeyPatch, authorization_headers(), create_contact(), create_conversation(), create_organization(), create_user(), async_sessionmaker, AsyncSession (+20 more)
+Nodes (28): authorization_headers(), create_contact(), create_conversation(), create_organization(), create_user(), async_sessionmaker, AsyncSession, MonkeyPatch (+20 more)
 
 ### Community 33 - "Agent Instructions"
 Cohesion: 0.25
@@ -140,12 +147,12 @@ Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?, Source Nodes
 
 ### Community 40 - "exceptions.py"
-Cohesion: 0.05
-Nodes (85): app_error_handler(), HttpErrorDetails, Request, bearer_scheme, AppError, AuthenticationRequiredError, ContactEmailAlreadyExistsError, ContactNotFoundError (+77 more)
+Cohesion: 0.13
+Nodes (35): app_error_handler(), HttpErrorDetails, Request, AppError, ContactEmailAlreadyExistsError, ContactNotFoundError, ConversationAlreadyAssignedError, ConversationMemberRequiredError (+27 more)
 
-### Community 41 - "settings.py"
-Cohesion: 0.09
-Nodes (34): BaseSettings, OutboxMessage, list_pending_for_publish(), AsyncSession, publish_pending_messages(), Settings, Task, TaskPublisher (+26 more)
+### Community 41 - "OutboxMessage"
+Cohesion: 0.17
+Nodes (23): OutboxMessage, list_pending_for_publish(), AsyncSession, publish_pending_messages(), TaskPublisher, test_outbox_publisher_task_runs_service(), configure_document_upload(), create_organization() (+15 more)
 
 ### Community 42 - "Q: Как безопасно подключить POST-загрузку документа к worker?"
 Cohesion: 0.40
@@ -167,52 +174,81 @@ Nodes (8): Cookie, get_pagination(), PaginationParams, BaseModel, Response, ge, 
 Cohesion: 0.40
 Nodes (4): Answer, Outcome, Q: Проверить миграцию create documents table, Source Nodes
 
-### Community 48 - "test_document_api.py"
-Cohesion: 0.53
-Nodes (8): create_organization(), create_stored_document(), async_sessionmaker, AsyncSession, TestClient, UUID, test_document_api_rejects_other_tenants_and_wrong_paths(), test_document_get_and_list_are_scoped_to_organization()
+### Community 48 - "FastAPI"
+Cohesion: 0.27
+Nodes (7): get_session(), AsyncSession, get_existing_document(), SessionDep, UUID, FastAPI, lifespan()
 
-### Community 49 - "OrganizationMember"
-Cohesion: 0.16
-Nodes (21): OrganizationPermission, get_existing_conversation(), ConversationFiltersQuery, CurrentUserDep, SessionDep, UUID, require_conversation_create_permission(), require_conversation_list_permission() (+13 more)
+### Community 49 - "add_process_time_header"
+Cohesion: 0.25
+Nodes (8): JSONResponse, add_process_time_header(), health_check(), get, Request, Response, readiness_check(), middleware
 
-### Community 50 - "create_contact"
-Cohesion: 0.19
-Nodes (14): ContactCreatePermissionDep, ContactReadPermissionDep, ExistingContactDep, create_contact(), get_contact(), list_contacts(), ExistingOrganizationDep, get (+6 more)
+### Community 50 - "routers/contacts.py"
+Cohesion: 0.12
+Nodes (27): ContactCreatePermissionDep, ContactReadPermissionDep, is_contact_email_unique_violation(), ExistingContactDep, create_contact(), get_contact(), list_contacts(), ExistingOrganizationDep (+19 more)
 
 ### Community 51 - "Document-processing runbook"
 Cohesion: 0.18
 Nodes (10): Check database migrations, Check retry behavior safely, Document-processing runbook, Full verification before a commit, Inspect logs, Open Flower, RabbitMQ queue dashboard, Start the project (+2 more)
 
-### Community 52 - "test_contacts.py"
-Cohesion: 0.42
-Nodes (9): create_organization(), async_sessionmaker, AsyncSession, TestClient, test_contact_create_get_and_list(), test_contact_email_is_unique_inside_organization(), test_contact_not_found(), test_contacts_require_tenant_membership() (+1 more)
+### Community 52 - "get_current_user"
+Cohesion: 0.40
+Nodes (5): bearer_scheme, get_current_user(), SessionDep, Depends, HTTPAuthorizationCredentials
+
+### Community 53 - "redis.py"
+Cohesion: 0.50
+Nodes (3): get_redis(), Redis, Request
+
+### Community 55 - "Q: Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи, Source Nodes
+
+### Community 56 - "Q: Дальше: разобрать существующий Docker стенд перед добавлением MinIO"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: Дальше: разобрать существующий Docker стенд перед добавлением MinIO, Source Nodes
+
+### Community 57 - "Q: Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия, Source Nodes
+
+### Community 58 - "Q: Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO"
+Cohesion: 0.40
+Nodes (4): Answer, Outcome, Q: Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO, Source Nodes
+
+### Community 60 - "dependencies/users.py"
+Cohesion: 0.26
+Nodes (10): get_current_user_account(), get_existing_user(), CurrentUserDep, SessionDep, UUID, get_active_by_email(), get_active_by_id(), list_active() (+2 more)
+
+### Community 63 - "test_document_api.py"
+Cohesion: 0.53
+Nodes (8): create_organization(), create_stored_document(), async_sessionmaker, AsyncSession, TestClient, UUID, test_document_api_rejects_other_tenants_and_wrong_paths(), test_document_get_and_list_are_scoped_to_organization()
 
 ## Knowledge Gaps
-- **40 isolated node(s):** `crud`, `Project invariants`, `Graphify`, `Skills and MCP`, `Implementation workflow` (+35 more)
+- **52 isolated node(s):** `crud`, `Project invariants`, `Graphify`, `Skills and MCP`, `Implementation workflow` (+47 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Work-memory lessons
 
 **Preferred sources** — corroborated by past sessions; start here.
-- `Document` (4× useful, score=3.828186092)
-- `DocumentStorage` (3× useful, score=2.871970836)
-- `Organization` (3× useful, score=2.869069791)
-- `User` (3× useful, score=2.869069791)
+- `Document` (5× useful, score=4.730260081) _(code changed — re-verify)_
+- `DocumentStorage` (4× useful, score=3.798494296) _(code changed — re-verify)_
+- `Organization` (3× useful, score=2.795710534)
+- `User` (3× useful, score=2.795710534)
+- `celery_app.py` (2× useful, score=1.933343067)
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `User` connect `User` to `test_conversations.py`, `test_auth.py`, `services/users.py`, `routers/conversations.py`, `test_document_processing.py`, `test_organizations.py`, `exceptions.py`, `repositories/users.py`, `services/organizations.py`, `test_users.py`, `OrganizationMember`?**
-  _High betweenness centrality (0.142) - this node is a cross-community bridge._
-- **Why does `Organization` connect `User` to `test_document_processing.py`, `test_organizations.py`, `exceptions.py`, `services/organizations.py`, `OrganizationMember`?**
-  _High betweenness centrality (0.041) - this node is a cross-community bridge._
-- **Why does `Document` connect `User` to `exceptions.py`, `test_document_api.py`, `test_document_processing.py`?**
+- **Why does `User` connect `User` to `Document`, `test_conversations.py`, `test_auth.py`, `services/users.py`, `test_organizations.py`, `exceptions.py`, `Organization`, `test_users.py`, `FastAPI`, `get_current_user`, `dependencies/users.py`?**
+  _High betweenness centrality (0.133) - this node is a cross-community bridge._
+- **Why does `Organization` connect `Organization` to `Document`, `User`, `test_organizations.py`, `exceptions.py`, `routers/contacts.py`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+- **Why does `Document` connect `Document` to `User`, `exceptions.py`, `Organization`, `FastAPI`, `test_document_api.py`?**
   _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Are the 11 inferred relationships involving `User` (e.g. with `Conversation` and `Document`) actually correct?**
-  _`User` has 11 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 7 inferred relationships involving `Organization` (e.g. with `Contact` and `Conversation`) actually correct?**
-  _`Organization` has 7 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 12 inferred relationships involving `User` (e.g. with `Conversation` and `Document`) actually correct?**
+  _`User` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 8 inferred relationships involving `Organization` (e.g. with `Contact` and `Conversation`) actually correct?**
+  _`Organization` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 5 inferred relationships involving `OrganizationRole` (e.g. with `OrganizationMember` and `OrganizationMemberListItem`) actually correct?**
   _`OrganizationRole` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 5 inferred relationships involving `OrganizationMember` (e.g. with `OrganizationRole` and `Base`) actually correct?**

@@ -19,6 +19,135 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ":9001"
+
+    env_file:
+      - .env
+
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+
+    volumes:
+      - minio_data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:9000/minio/health/live",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+
+    env_file:
+      - .env
+
+    depends_on:
+      minio:
+        condition: service_healthy
+
+    entrypoint:
+      - /bin/sh
+      - -c
+
+    command:
+      - |
+        set -eu
+
+        mc alias set local \
+          http://minio:9000 \
+          "$${MINIO_ROOT_USER}" \
+          "$${MINIO_ROOT_PASSWORD}"
+
+        mc mb --ignore-existing \
+          "local/$${MINIO_DOCUMENTS_BUCKET}"
+
+        mc anonymous set private \
+          "local/$${MINIO_DOCUMENTS_BUCKET}"
+
+        cat > /tmp/documents-policy.json <<EOF
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetBucketLocation",
+                "s3:ListBucket"
+              ],
+              "Resource": [
+                "arn:aws:s3:::$${MINIO_DOCUMENTS_BUCKET}"
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+              ],
+              "Resource": [
+                "arn:aws:s3:::$${MINIO_DOCUMENTS_BUCKET}/*"
+              ]
+            }
+          ]
+        }
+        EOF
+
+        if ! mc admin policy info local documents-app >/dev/null 2>&1; then
+          mc admin policy create \
+            local \
+            documents-app \
+            /tmp/documents-policy.json
+        fi
+
+        if ! mc admin user info \
+          local \
+          "$${MINIO_ACCESS_KEY}" >/dev/null 2>&1; then
+          mc admin user add \
+            local \
+            "$${MINIO_ACCESS_KEY}" \
+            "$${MINIO_SECRET_KEY}"
+        fi
+
+        mc admin policy attach \
+          local \
+          documents-app \
+          --user "$${MINIO_ACCESS_KEY}"
+
+    restart: "no"
+
+  qdrant:
+    image: qdrant/qdrant@sha256:057ee3a8da769fe7310dd3537b4dc7583bf87a95ce8ac43c0af5a46bc580d1fc
+
+    profiles:
+      - vector
+
+    ports:
+      - "127.0.0.1:6333:6333"
+
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -c 'exec 3<>/dev/tcp/localhost/6333 && printf \"GET /healthz HTTP/1.0\\r\\n\\r\\n\" >&3 && head -n 1 <&3 | grep -q \"200\"'",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   app:
     build:
       context: .
@@ -31,7 +160,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: amqp://crud:crud_rabbitmq_password@rabbitmq:5672/crud
       CELERY_RESULT_BACKEND: disabled://
-      DOCUMENT_STORAGE_PATH: /data/documents
+      MINIO_ENDPOINT: minio:9000
 
     ports:
       - "8000:8000"
@@ -43,10 +172,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
-    volumes:
-      - document_data:/data/documents
-  
   worker:
     build:
       context: .
@@ -61,7 +189,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: amqp://crud:crud_rabbitmq_password@rabbitmq:5672/crud
       CELERY_RESULT_BACKEND: disabled://
-      DOCUMENT_STORAGE_PATH: /data/documents
+      MINIO_ENDPOINT: minio:9000
 
     depends_on:
       db:
@@ -70,9 +198,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-
-    volumes:
-      - document_data:/data/documents
+      minio-init:
+        condition: service_completed_successfully
 
   flower:
     profiles:
@@ -120,7 +247,6 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: amqp://crud:crud_rabbitmq_password@rabbitmq:5672/crud
       CELERY_RESULT_BACKEND: disabled://
-      DOCUMENT_STORAGE_PATH: /data/documents
 
     depends_on:
       db:
@@ -163,5 +289,6 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
-  document_data:
   celery_beat_data:
+  minio_data:
+  qdrant_data:

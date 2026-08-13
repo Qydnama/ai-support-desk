@@ -2,6 +2,7 @@ import asyncio
 import logging
 from uuid import UUID
 
+from core.exceptions import DocumentStorageUnavailableError
 from database import engine, session_factory
 from repositories import documents as document_repository
 from services.document_storage import get_document_storage
@@ -83,7 +84,10 @@ async def process_document(
 
                 return
             
-            except OSError as exc:
+            except (
+                DocumentStorageUnavailableError,
+                OSError,
+            ) as exc:
                 logger.warning(
                     "document_processing_transient_error "
                     "task_id=%s document_id=%s "

@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr
@@ -11,6 +10,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
     database_url: str
 
     jwt_secret: SecretStr = Field(
@@ -29,6 +29,7 @@ class Settings(BaseSettings):
         ge=1,
         le=90,
     )
+
     redis_url: str
     redis_test_url: str
     login_rate_limit_max_attempts: int = Field(
@@ -51,9 +52,23 @@ class Settings(BaseSettings):
         ge=1,
         le=3_600,
     )
+
     celery_broker_url: str
     celery_result_backend: str
-    document_storage_path: Path
+
+    minio_endpoint: str
+    minio_public_endpoint: str
+    minio_access_key: SecretStr
+    minio_secret_key: SecretStr
+    minio_secure: bool = False
+    minio_public_secure: bool = False
+    minio_documents_bucket: str
+    minio_presigned_get_expires_seconds: int = Field(
+        default=300,
+        ge=60,
+        le=3_600,
+    )
+
     document_upload_max_bytes: int = Field(
         default=1_048_576,
         ge=1,
