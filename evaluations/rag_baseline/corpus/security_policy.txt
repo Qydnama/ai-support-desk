@@ -1,0 +1,8 @@
+Security Policy
+
+All employees must enable multi-factor authentication for their work account.
+
+Access tokens expire after 15 minutes.
+Refresh tokens expire after 30 days unless they are revoked earlier.
+
+A suspected account compromise must be reported to the security team within one hour.

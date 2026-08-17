@@ -143,3 +143,25 @@ async def mark_stale_processing_as_failed(
     )
 
     return len(list(failed_document_ids))
+
+
+async def mark_completed_as_failed(
+    session: AsyncSession,
+    *,
+    document_id: UUID,
+    error_message: str,
+) -> Document | None:
+    statement = (
+        update(Document)
+        .where(
+            Document.id == document_id,
+            Document.status == DocumentStatus.COMPLETED,
+        )
+        .values(
+            status=DocumentStatus.FAILED,
+            error_message=error_message,
+        )
+        .returning(Document)
+    )
+
+    return await session.scalar(statement)

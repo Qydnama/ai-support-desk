@@ -1,59 +1,79 @@
 {
-  "generated_at": "2026-08-12T06:34:07.356515+00:00",
+  "generated_at": "2026-08-14T04:30:54.865104+00:00",
   "nodes": {
     "agents_agent_instructions": {
       "code_fingerprint": "4e82f08de84b10b90492dcc1340e3b514450d7db53ce20eb730597ace5520698",
       "label": "Agent Instructions",
-      "last": "2026-08-09T03:33:01.791394+00:00",
+      "last": "2026-08-14T04:26:52.919823+00:00",
       "provenance": [
+        {
+          "date": "2026-08-14T04:26:52.919823+00:00",
+          "outcome": "useful",
+          "q": "Прочитай файл .rules/rules8.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям, И ОБЬЯСНЯЙ НОВЫЕ ВЕЩИ КОТОРЫЕ ЕЩЕ НЕ БЫЛИ У НАС, ТИПО ЕСЛИ В КОДЕ ЧТОТО НОВОЕ ИСПОЛЬЗОВАЛ ОБЬЯНЯЙ ЕГО И ЗАЧЕМ ОНА НУЖНА"
+        },
         {
           "date": "2026-08-09T03:33:01.791394+00:00",
           "outcome": "useful",
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.930325862,
+      "score": 1.890006971,
       "source_file": "AGENTS.md",
-      "status": "tentative",
-      "uses": 1
+      "status": "preferred",
+      "uses": 2
     },
     "agents_implementation_workflow": {
       "code_fingerprint": "4e82f08de84b10b90492dcc1340e3b514450d7db53ce20eb730597ace5520698",
       "label": "Implementation workflow",
-      "last": "2026-08-09T03:33:01.791394+00:00",
+      "last": "2026-08-14T04:26:52.919823+00:00",
       "provenance": [
+        {
+          "date": "2026-08-14T04:26:52.919823+00:00",
+          "outcome": "useful",
+          "q": "Прочитай файл .rules/rules8.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям, И ОБЬЯСНЯЙ НОВЫЕ ВЕЩИ КОТОРЫЕ ЕЩЕ НЕ БЫЛИ У НАС, ТИПО ЕСЛИ В КОДЕ ЧТОТО НОВОЕ ИСПОЛЬЗОВАЛ ОБЬЯНЯЙ ЕГО И ЗАЧЕМ ОНА НУЖНА"
+        },
         {
           "date": "2026-08-09T03:33:01.791394+00:00",
           "outcome": "useful",
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.930325862,
+      "score": 1.890006971,
       "source_file": "AGENTS.md",
-      "status": "tentative",
-      "uses": 1
+      "status": "preferred",
+      "uses": 2
     },
     "agents_project_invariants": {
       "code_fingerprint": "4e82f08de84b10b90492dcc1340e3b514450d7db53ce20eb730597ace5520698",
       "label": "Project invariants",
-      "last": "2026-08-09T03:33:01.791394+00:00",
+      "last": "2026-08-14T04:26:52.919823+00:00",
       "provenance": [
+        {
+          "date": "2026-08-14T04:26:52.919823+00:00",
+          "outcome": "useful",
+          "q": "Прочитай файл .rules/rules8.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям, И ОБЬЯСНЯЙ НОВЫЕ ВЕЩИ КОТОРЫЕ ЕЩЕ НЕ БЫЛИ У НАС, ТИПО ЕСЛИ В КОДЕ ЧТОТО НОВОЕ ИСПОЛЬЗОВАЛ ОБЬЯНЯЙ ЕГО И ЗАЧЕМ ОНА НУЖНА"
+        },
         {
           "date": "2026-08-09T03:33:01.791394+00:00",
           "outcome": "useful",
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.930325862,
+      "score": 1.890006971,
       "source_file": "AGENTS.md",
-      "status": "tentative",
-      "uses": 1
+      "status": "preferred",
+      "uses": 2
     },
     "celery_app": {
       "code_fingerprint": "cd976c8bb47db283cf01a1025ebbfe38e7f3eccb6e1a6e2118df43792cd284ce",
       "label": "celery_app.py",
-      "last": "2026-08-12T06:31:26.163825+00:00",
+      "last": "2026-08-12T06:35:11.667750+00:00",
       "provenance": [
+        {
+          "date": "2026-08-12T06:35:11.667750+00:00",
+          "outcome": "useful",
+          "q": "Дальше: разобрать существующий Docker стенд перед добавлением MinIO"
+        },
         {
           "date": "2026-08-12T06:31:26.163825+00:00",
           "outcome": "useful",
@@ -65,26 +85,31 @@
           "q": "Как безопасно подключить POST-загрузку документа к worker?"
         }
       ],
-      "score": 1.933343067,
+      "score": 2.806436942,
       "source_file": "celery_app.py",
       "status": "preferred",
-      "uses": 2
+      "uses": 3
     },
     "claude_architecture": {
       "code_fingerprint": "2fa68ddad61d4af12c8039060d79b4bc62be602e8f979cda52d38978ff4533dd",
       "label": "Architecture",
-      "last": "2026-08-09T03:33:01.791394+00:00",
+      "last": "2026-08-14T04:26:52.919823+00:00",
       "provenance": [
+        {
+          "date": "2026-08-14T04:26:52.919823+00:00",
+          "outcome": "useful",
+          "q": "Прочитай файл .rules/rules8.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям, И ОБЬЯСНЯЙ НОВЫЕ ВЕЩИ КОТОРЫЕ ЕЩЕ НЕ БЫЛИ У НАС, ТИПО ЕСЛИ В КОДЕ ЧТОТО НОВОЕ ИСПОЛЬЗОВАЛ ОБЬЯНЯЙ ЕГО И ЗАЧЕМ ОНА НУЖНА"
+        },
         {
           "date": "2026-08-09T03:33:01.791394+00:00",
           "outcome": "useful",
           "q": "Прочитай файл rules6.md и проанализируй его и следуй его указаниям чтобы помоч мне сделать этот проект и научиться новым вещям"
         }
       ],
-      "score": 0.930325862,
+      "score": 1.890006971,
       "source_file": "CLAUDE.md",
-      "status": "tentative",
-      "uses": 1
+      "status": "preferred",
+      "uses": 2
     },
     "core_enums_documentstatus": {
       "code_fingerprint": "0f23aa3994aa6ec2bc2667a6c46c8fecfb75945ccc8d8ca7e785f45bb3fb3920",
@@ -97,7 +122,7 @@
           "q": "Проверить миграцию create documents table"
         }
       ],
-      "score": 0.931765785,
+      "score": 0.891449288,
       "source_file": "core/enums.py",
       "status": "tentative",
       "uses": 1
@@ -113,8 +138,40 @@
           "q": "Куда подключать загрузку документа в существующей архитектуре?"
         }
       ],
-      "score": 0.932662397,
+      "score": 0.892307104,
       "source_file": "core/enums.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "database": {
+      "code_fingerprint": "6634be53340786d6c1fb46359d5f471e5ada41634cb8e27cf570c337acc91c79",
+      "label": "database.py",
+      "last": "2026-08-12T06:35:11.667750+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T06:35:11.667750+00:00",
+          "outcome": "useful",
+          "q": "Дальше: разобрать существующий Docker стенд перед добавлением MinIO"
+        }
+      ],
+      "score": 0.956747536,
+      "source_file": "database.py",
+      "status": "tentative",
+      "uses": 1
+    },
+    "main_health_check": {
+      "code_fingerprint": "04845edb8b060ade10874d11f7c6480010bc12af032094cdb976f919aada6e82",
+      "label": "health_check()",
+      "last": "2026-08-12T09:19:18.640349+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T09:19:18.640349+00:00",
+          "outcome": "useful",
+          "q": "Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия"
+        }
+      ],
+      "score": 0.959270218,
+      "source_file": "main.py",
       "status": "tentative",
       "uses": 1
     },
@@ -129,7 +186,7 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 0.931455916,
+      "score": 0.891152827,
       "source_file": "models/base.py",
       "status": "tentative",
       "uses": 1
@@ -145,16 +202,26 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 0.931455916,
+      "score": 0.891152827,
       "source_file": "models/conversations.py",
       "status": "tentative",
       "uses": 1
     },
     "models_documents_document": {
-      "code_fingerprint": "14c5527c5f54c2f991ca8bf49f5c1fc781ea7ac5dc2c9212305fbcf89ac6c3a1",
+      "code_fingerprint": "a10b7f6fb9fec4da9174f2d98e6eb863d47dbbfc0f850ff519f44b00f52b173d",
       "label": "Document",
-      "last": "2026-08-12T06:31:26.163825+00:00",
+      "last": "2026-08-12T09:46:16.222508+00:00",
       "provenance": [
+        {
+          "date": "2026-08-12T09:46:16.222508+00:00",
+          "outcome": "useful",
+          "q": "Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO"
+        },
+        {
+          "date": "2026-08-12T09:19:18.640349+00:00",
+          "outcome": "useful",
+          "q": "Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия"
+        },
         {
           "date": "2026-08-12T06:31:26.163825+00:00",
           "outcome": "useful",
@@ -169,22 +236,12 @@
           "date": "2026-08-09T06:09:21.769380+00:00",
           "outcome": "useful",
           "q": "Куда подключать загрузку документа в существующей архитектуре?"
-        },
-        {
-          "date": "2026-08-09T05:57:45.807669+00:00",
-          "outcome": "useful",
-          "q": "Как добавить настоящий upload pipeline Document после локального storage?"
-        },
-        {
-          "date": "2026-08-09T05:09:25.116844+00:00",
-          "outcome": "useful",
-          "q": "Проверить миграцию create documents table"
         }
       ],
-      "score": 4.730260081,
+      "score": 6.444542326,
       "source_file": "models/documents.py",
       "status": "preferred",
-      "uses": 5
+      "uses": 7
     },
     "models_organizations_organization": {
       "code_fingerprint": "4b2da3b5af8f15bc8cedf4476fca85ee10e66f67ab468f36d9bb36d20b66328a",
@@ -207,7 +264,7 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 2.795710534,
+      "score": 2.674743165,
       "source_file": "models/organizations.py",
       "status": "preferred",
       "uses": 3
@@ -215,18 +272,23 @@
     "models_outbox_messages_outboxmessage": {
       "code_fingerprint": "2d5c9136cab5162600ded49ba87a5787a977b7eb5b2dec4c9fe895fb7ae208ff",
       "label": "OutboxMessage",
-      "last": "2026-08-12T06:31:26.163825+00:00",
+      "last": "2026-08-12T09:46:16.222508+00:00",
       "provenance": [
+        {
+          "date": "2026-08-12T09:46:16.222508+00:00",
+          "outcome": "useful",
+          "q": "Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO"
+        },
         {
           "date": "2026-08-12T06:31:26.163825+00:00",
           "outcome": "useful",
           "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
         }
       ],
-      "score": 0.999956895,
+      "score": 1.916375103,
       "source_file": "models/outbox_messages.py",
-      "status": "tentative",
-      "uses": 1
+      "status": "preferred",
+      "uses": 2
     },
     "models_users_user": {
       "code_fingerprint": "4ad027787c0cc760230103b805b527142c84978b5144d05113883b2360170c21",
@@ -249,13 +311,29 @@
           "q": "Как добавить минимальный контракт Document в текущие SQLAlchemy models без нарушения tenant architecture?"
         }
       ],
-      "score": 2.795710534,
+      "score": 2.674743165,
       "source_file": "models/users.py",
       "status": "preferred",
       "uses": 3
     },
+    "routers_documents": {
+      "code_fingerprint": "cb765d74b238053a6b77b16252259405867dc4da55599c055c4cd41f799e3057",
+      "label": "routers/documents.py",
+      "last": "2026-08-12T09:46:16.222508+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T09:46:16.222508+00:00",
+          "outcome": "useful",
+          "q": "Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO"
+        }
+      ],
+      "score": 0.95968526,
+      "source_file": "routers/documents.py",
+      "status": "tentative",
+      "uses": 1
+    },
     "routers_documents_upload_document": {
-      "code_fingerprint": "efa7778c0cb41736b5211869c9f357c126c565e01ce5625cf985a74aa0365e72",
+      "code_fingerprint": "cb765d74b238053a6b77b16252259405867dc4da55599c055c4cd41f799e3057",
       "label": "upload_document()",
       "last": "2026-08-12T06:31:26.163825+00:00",
       "provenance": [
@@ -265,16 +343,31 @@
           "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
         }
       ],
-      "score": 0.999956895,
+      "score": 0.956689843,
       "source_file": "routers/documents.py",
       "status": "tentative",
       "uses": 1
     },
     "services_document_storage_documentstorage": {
-      "code_fingerprint": "a68c2daaf9fdf93ba732055e02a442f0ec94f569f13f79fc8544ea13de7ada3d",
+      "code_fingerprint": "73e05dc63b39af3ad2771080bcdae27849740488014e32106808b70d8db00530",
       "label": "DocumentStorage",
-      "last": "2026-08-12T06:31:26.163825+00:00",
+      "last": "2026-08-12T09:46:16.222508+00:00",
       "provenance": [
+        {
+          "date": "2026-08-12T09:46:16.222508+00:00",
+          "outcome": "useful",
+          "q": "Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO"
+        },
+        {
+          "date": "2026-08-12T09:19:18.640349+00:00",
+          "outcome": "useful",
+          "q": "Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия"
+        },
+        {
+          "date": "2026-08-12T06:35:11.667750+00:00",
+          "outcome": "useful",
+          "q": "Дальше: разобрать существующий Docker стенд перед добавлением MinIO"
+        },
         {
           "date": "2026-08-12T06:31:26.163825+00:00",
           "outcome": "useful",
@@ -284,25 +377,41 @@
           "date": "2026-08-09T06:57:42.585547+00:00",
           "outcome": "useful",
           "q": "Как безопасно подключить POST-загрузку документа к worker?"
-        },
-        {
-          "date": "2026-08-09T06:09:21.769380+00:00",
-          "outcome": "useful",
-          "q": "Куда подключать загрузку документа в существующей архитектуре?"
-        },
-        {
-          "date": "2026-08-09T05:57:45.807669+00:00",
-          "outcome": "useful",
-          "q": "Как добавить настоящий upload pipeline Document после локального storage?"
         }
       ],
-      "score": 3.798494296,
+      "score": 6.509840575,
       "source_file": "services/document_storage.py",
       "status": "preferred",
-      "uses": 4
+      "uses": 7
+    },
+    "services_documents": {
+      "code_fingerprint": "8e18299f207c2ab2c65ef9b873f11b7be4d425b4892cf8871ec8fe60e9d91a2f",
+      "label": "services/documents.py",
+      "last": "2026-08-12T09:46:16.222508+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T09:46:16.222508+00:00",
+          "outcome": "useful",
+          "q": "Дать полный код для перехода FastAPI и worker с local DocumentStorage на MinIO"
+        },
+        {
+          "date": "2026-08-12T09:19:18.640349+00:00",
+          "outcome": "useful",
+          "q": "Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия"
+        },
+        {
+          "date": "2026-08-12T06:35:11.667750+00:00",
+          "outcome": "useful",
+          "q": "Дальше: разобрать существующий Docker стенд перед добавлением MinIO"
+        }
+      ],
+      "score": 2.875703015,
+      "source_file": "services/documents.py",
+      "status": "preferred",
+      "uses": 3
     },
     "services_documents_create_document": {
-      "code_fingerprint": "6ab2622a443047d0aae9e91c23b2539e448abb7a309f06bc05c2334734df8ed3",
+      "code_fingerprint": "8e18299f207c2ab2c65ef9b873f11b7be4d425b4892cf8871ec8fe60e9d91a2f",
       "label": "create_document()",
       "last": "2026-08-12T06:31:26.163825+00:00",
       "provenance": [
@@ -312,10 +421,31 @@
           "q": "Прочитай rules6.md, проанализируй его и следуй его указаниям, объясняя все новые вещи"
         }
       ],
-      "score": 0.999956895,
+      "score": 0.956689843,
       "source_file": "services/documents.py",
       "status": "tentative",
       "uses": 1
+    },
+    "settings": {
+      "code_fingerprint": "6837c047a37b5f3051c58b2203a8515e2e5a362466c821b86b24161e3807fab6",
+      "label": "settings.py",
+      "last": "2026-08-12T09:19:18.640349+00:00",
+      "provenance": [
+        {
+          "date": "2026-08-12T09:19:18.640349+00:00",
+          "outcome": "useful",
+          "q": "Продолжить: подготовить точное изменение Compose для MinIO и объяснить новые понятия"
+        },
+        {
+          "date": "2026-08-12T06:35:11.667750+00:00",
+          "outcome": "useful",
+          "q": "Дальше: разобрать существующий Docker стенд перед добавлением MinIO"
+        }
+      ],
+      "score": 1.916017755,
+      "source_file": "settings.py",
+      "status": "preferred",
+      "uses": 2
     }
   },
   "version": 1

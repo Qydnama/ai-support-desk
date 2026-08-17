@@ -19,7 +19,11 @@ from repositories import documents as document_repository
 from schemas.documents import (
     DocumentDownloadRead,
     DocumentRead,
+    DocumentSearchCitationRead,
+    DocumentSearchRead,
+    DocumentSearchRequest,
 )
+from services import document_search
 from services import documents as document_service
 from settings import settings
 
@@ -58,6 +62,42 @@ async def list_documents(
         DocumentRead.model_validate(document)
         for document in documents
     ]
+
+
+@router.post(
+    "/search",
+    status_code=status.HTTP_200_OK,
+    summary="Search organization documents",
+)
+async def search_organization_documents(
+    request: DocumentSearchRequest,
+    existing_organization: ExistingOrganizationDep,
+    _permission: DocumentReadPermissionDep,
+    session: SessionDep,
+) -> DocumentSearchRead:
+    result = await document_search.search_documents(
+        session=session,
+        organization_id=existing_organization.id,
+        question=request.question,
+        limit=request.limit,
+    )
+
+    return DocumentSearchRead(
+        answer=result.answer,
+        answer_not_found=result.answer_not_found,
+        citations=[
+            DocumentSearchCitationRead(
+                document_id=citation.document_id,
+                chunk_id=citation.chunk_id,
+                chunk_index=citation.chunk_index,
+                document_filename=citation.document_filename,
+                page_start=citation.page_start,
+                page_end=citation.page_end,
+                score=citation.score,
+            )
+            for citation in result.citations
+        ],
+    )
 
 
 @router.get(

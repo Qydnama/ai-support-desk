@@ -1,5 +1,6 @@
 from models.contacts import Contact
 from models.conversations import Conversation
+from models.document_chunks import DocumentChunk
 from models.documents import Document
 from models.idempotency_records import IdempotencyRecord
 from models.messages import Message
@@ -12,6 +13,7 @@ __all__ = (
     "Contact",
     "Conversation",
     "Document",
+    "DocumentChunk",
     "IdempotencyRecord",
     "Message",
     "Organization",

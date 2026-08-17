@@ -10,14 +10,32 @@ from urllib3.exceptions import HTTPError
 from core.exceptions import DocumentStorageUnavailableError
 from settings import settings
 
+_DOCUMENT_STORAGE_SUFFIXES = {
+    "text/plain": ".txt",
+    "application/pdf": ".pdf",
+    (
+        "application/vnd.openxmlformats-officedocument."
+        "wordprocessingml.document"
+    ): ".docx",
+}
+
 
 def create_document_storage_key(
     organization_id: UUID,
     document_id: UUID,
+    *,
+    content_type: str,
 ) -> str:
+    try:
+        suffix = _DOCUMENT_STORAGE_SUFFIXES[content_type]
+    except KeyError as exc:
+        raise ValueError(
+            "document content type has no storage suffix",
+        ) from exc
+
     return (
         f"organizations/{organization_id}/documents/"
-        f"{document_id}/original.txt"
+        f"{document_id}/original{suffix}"
     )
 
 

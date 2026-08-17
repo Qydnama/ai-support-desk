@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "refund_window",
+      "question": "В течение какого срока клиент может запросить возврат?",
+      "answer_expected": true,
+      "expected_document_filename": "return_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["14", "дней"]
+    },
+    {
+      "id": "refund_payment_timing",
+      "question": "За сколько времени одобренный возврат поступает на исходный способ оплаты?",
+      "answer_expected": true,
+      "expected_document_filename": "return_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["5", "рабоч"]
+    },
+    {
+      "id": "mfa_requirement",
+      "question": "Должны ли сотрудники включать многофакторную аутентификацию?",
+      "answer_expected": true,
+      "expected_document_filename": "security_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["многофактор"]
+    },
+    {
+      "id": "access_token_lifetime",
+      "question": "Через сколько истекает access token?",
+      "answer_expected": true,
+      "expected_document_filename": "security_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["15", "минут"]
+    },
+    {
+      "id": "refresh_token_lifetime",
+      "question": "Какой срок действия refresh token?",
+      "answer_expected": true,
+      "expected_document_filename": "security_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["30", "дней"]
+    },
+    {
+      "id": "security_incident_reporting",
+      "question": "За какое время нужно сообщить о подозрении на компрометацию аккаунта?",
+      "answer_expected": true,
+      "expected_document_filename": "security_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": [
+        ["один час", "одного часа", "1 час", "1 часа"]
+      ]
+    },
+    {
+      "id": "security_training_deadline",
+      "question": "Когда новый сотрудник должен завершить обязательное обучение по безопасности?",
+      "answer_expected": true,
+      "expected_document_filename": "onboarding_guide.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["7", "дней"]
+    },
+    {
+      "id": "laptop_approval_time",
+      "question": "Сколько обычно рассматривается запрос на ноутбук?",
+      "answer_expected": true,
+      "expected_document_filename": "onboarding_guide.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["3", "рабоч"]
+    },
+    {
+      "id": "critical_incident_response_time",
+      "question": "За какое время поддержка должна ответить на критический инцидент?",
+      "answer_expected": true,
+      "expected_document_filename": "support_sla.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["30", "минут"]
+    },
+    {
+      "id": "standard_request_response_time",
+      "question": "Какой срок первого ответа для стандартного запроса?",
+      "answer_expected": true,
+      "expected_document_filename": "support_sla.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["2", "рабоч"]
+    },
+    {
+      "id": "data_export_deadline",
+      "question": "За сколько дней обрабатывается запрос на экспорт данных?",
+      "answer_expected": true,
+      "expected_document_filename": "data_handling_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["10", "дней"]
+    },
+    {
+      "id": "attachment_retention_period",
+      "question": "Как долго хранятся вложения к закрытому обращению в поддержку?",
+      "answer_expected": true,
+      "expected_document_filename": "data_handling_policy.txt",
+      "expected_chunk_index": 0,
+      "expected_answer_terms": ["90", "дней"]
+    },
+    {
+      "id": "unsupported_question",
+      "question": "Оплачивает ли компания личный автомобиль сотрудника?",
+      "answer_expected": false
+    }
+  ]
+}

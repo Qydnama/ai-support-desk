@@ -20,6 +20,7 @@ from core.enums import DocumentStatus
 from models.base import Base
 
 if TYPE_CHECKING:
+    from models.document_chunks import DocumentChunk
     from models.organizations import Organization
     from models.users import User
 
@@ -108,6 +109,12 @@ class Document(Base):
     )
     uploaded_by_user: Mapped[User] = relationship(
         back_populates="uploaded_documents",
+        lazy="raise",
+    )
+    chunks: Mapped[list[DocumentChunk]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         lazy="raise",
     )
 

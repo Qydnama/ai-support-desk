@@ -70,6 +70,138 @@ uv run alembic current
 uv run alembic check
 ```
 
+## RAG: documents, Qdrant, and OpenAI
+
+The document-search flow is:
+
+```text
+upload
+  -> PostgreSQL outbox
+  -> Celery worker
+  -> text extraction
+  -> chunks in PostgreSQL
+  -> embeddings from OpenAI
+  -> vectors in Qdrant
+  -> grounded answer with citations
+```
+
+PostgreSQL remains the source of truth. Qdrant only finds candidate chunks.
+Before returning an answer, the API loads those chunks again from PostgreSQL
+and verifies their organization, document status, and index version.
+
+### Apply RAG code changes
+
+After changing Python source files, rebuild the application and worker
+containers. `docker compose up -d` without `--build` can leave old Python
+code inside already-created containers.
+
+```powershell
+docker compose up -d --build --force-recreate
+```
+
+This recreates containers but does not remove PostgreSQL, MinIO, or Qdrant
+volumes.
+
+Check the one-time Qdrant initialization task:
+
+```powershell
+docker compose logs qdrant-init
+```
+
+`qdrant-init` normally has the status `Exited (0)`. It creates or checks the
+current Qdrant collection and then finishes successfully.
+
+### Required local configuration
+
+The `.env` file must contain a real OpenAI API key:
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+Do not commit `.env` or share this key.
+
+Current RAG settings:
+
+```env
+DOCUMENT_CHUNK_INDEX_VERSION=v2
+DOCUMENT_EMBEDDING_MODEL=text-embedding-3-small
+DOCUMENT_EMBEDDING_DIMENSION=1536
+DOCUMENT_VECTOR_COLLECTION_NAME=document_chunks_v2
+
+DOCUMENT_ANSWER_MODEL=gpt-5.6-luna
+DOCUMENT_ANSWER_REASONING_EFFORT=none
+DOCUMENT_ANSWER_MAX_OUTPUT_TOKENS=500
+```
+
+Each document chunk is sent to OpenAI once during indexing. During search,
+the user's question is sent for embedding and only the retrieved chunks are
+sent to the answer-generation model.
+
+### Reindex existing completed documents
+
+Use this command after changing the embedding model, chunking version, or
+Qdrant collection name:
+
+```powershell
+uv run python -m services.document_reindexing --batch-size 25
+```
+
+The command creates vectors in Qdrant before replacing PostgreSQL chunks.
+
+If Qdrant or OpenAI is temporarily unavailable, PostgreSQL chunks are not
+replaced. If an old document has no source object in MinIO, it becomes
+`FAILED`, because it cannot be safely reconstructed and reindexed.
+
+Do not delete an old Qdrant collection before the new collection has been
+checked with real documents.
+
+### Observe document indexing
+
+Follow worker logs after uploading a document:
+
+```powershell
+docker compose logs -f worker
+```
+
+A successful document should produce:
+
+```text
+document_processing_started
+document_processing_completed
+```
+
+OpenAPI documentation is available at:
+
+```text
+http://localhost:8000/docs
+```
+
+The search endpoint is:
+
+```text
+POST /organizations/{organization_id}/documents/search
+```
+
+The request body is:
+
+```json
+{
+  "question": "What does the document say about refunds?",
+  "limit": 5
+}
+```
+
+The response contains:
+
+- `answer` — a grounded answer generated only from retrieved chunks;
+- `answer_not_found` — `true` when no suitable source exists;
+- `citations` — the real PostgreSQL chunks selected by the model.
+
+A `503 document_search_unavailable` response means that OpenAI or Qdrant is
+temporarily unavailable. It does not mean that PostgreSQL document data was
+lost.
+
 ## Verify that RabbitMQ recovery does not lose a document
 
 This is an **outage drill**: a deliberate, short service failure used to prove

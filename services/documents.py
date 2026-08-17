@@ -6,6 +6,7 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions import (
+    DocumentContentInvalidError,
     DocumentEncodingInvalidError,
     DocumentFilenameRequiredError,
     DocumentTooLargeError,
@@ -19,9 +20,15 @@ from services.document_storage import (
     create_document_storage_key,
     get_document_storage,
 )
+from services.document_text_extraction import (
+    SUPPORTED_DOCUMENT_CONTENT_TYPES,
+    TEXT_CONTENT_TYPE,
+    DocumentExtractionLimitError,
+    InvalidDocumentFormatError,
+    validate_document_upload_content,
+)
 from settings import settings
 
-SUPPORTED_DOCUMENT_CONTENT_TYPE = "text/plain"
 DOCUMENT_PROCESSING_TASK_NAME = "documents.process_document"
 
 
@@ -53,22 +60,35 @@ async def create_document(
     if len(normalized_filename) > 255:
         raise DocumentFilenameRequiredError()
 
-    if normalized_content_type != SUPPORTED_DOCUMENT_CONTENT_TYPE:
+    if (
+        normalized_content_type
+        not in SUPPORTED_DOCUMENT_CONTENT_TYPES
+    ):
         raise UnsupportedDocumentContentTypeError()
 
     if len(content) > settings.document_upload_max_bytes:
         raise DocumentTooLargeError()
 
     try:
-        content.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise DocumentEncodingInvalidError() from exc
+        await asyncio.to_thread(
+            validate_document_upload_content,
+            content=content,
+            content_type=normalized_content_type,
+        )
+    except DocumentExtractionLimitError as exc:
+        raise DocumentTooLargeError() from exc
+    except InvalidDocumentFormatError as exc:
+        if normalized_content_type == TEXT_CONTENT_TYPE:
+            raise DocumentEncodingInvalidError() from exc
+
+        raise DocumentContentInvalidError() from exc
 
     document_id = uuid4()
     storage = get_document_storage()
     storage_key = create_document_storage_key(
         organization.id,
         document_id,
+        content_type=normalized_content_type,
     )
 
     document = Document(

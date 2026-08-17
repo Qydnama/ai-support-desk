@@ -4,8 +4,18 @@ from uuid import UUID
 
 from core.exceptions import DocumentStorageUnavailableError
 from database import engine, session_factory
+from repositories import document_chunks as document_chunk_repository
 from repositories import documents as document_repository
+from services.document_chunks import build_document_chunks
+from services.document_embeddings import embed_document_texts
 from services.document_storage import get_document_storage
+from services.document_text_extraction import (
+    DocumentTextExtractionError,
+    extract_document_text,
+)
+from services.document_vector_store import (
+    upsert_document_chunk_vectors,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +69,13 @@ async def process_document(
             )
 
             try:
-                extracted_text = await asyncio.to_thread(
-                    get_document_storage().read_text,
+                content = await asyncio.to_thread(
+                    get_document_storage().read_bytes,
                     document.storage_key,
                 )
             except (
                 FileNotFoundError,
                 PermissionError,
-                UnicodeDecodeError,
                 ValueError,
             ):
                 try:
@@ -83,7 +92,6 @@ async def process_document(
                     raise
 
                 return
-            
             except (
                 DocumentStorageUnavailableError,
                 OSError,
@@ -97,12 +105,74 @@ async def process_document(
                     document.organization_id,
                     exc.__class__.__name__,
                 )
-                raise                
+                raise
+
+            try:
+                extracted_document = await asyncio.to_thread(
+                    extract_document_text,
+                    content=content,
+                    content_type=document.content_type,
+                )
+
+            except DocumentTextExtractionError as exc:
+                try:
+                    await document_repository.mark_failed(
+                        session=session,
+                        document_id=document.id,
+                        error_message=str(exc),
+                    )
+                    await session.commit()
+                except Exception:
+                    await session.rollback()
+                    raise
+
+                return
+                
+            chunks = build_document_chunks(
+                organization_id=document.organization_id,
+                document_id=document.id,
+                extracted_document=extracted_document,
+            )
+
+            try:
+                await document_chunk_repository.replace_for_document(
+                    session=session,
+                    organization_id=document.organization_id,
+                    document_id=document.id,
+                    chunks=chunks,
+                )
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+            try:
+                vectors = await asyncio.to_thread(
+                    embed_document_texts,
+                    [chunk.content for chunk in chunks],
+                )
+                await asyncio.to_thread(
+                    upsert_document_chunk_vectors,
+                    chunks=chunks,
+                    vectors=vectors,
+                )
+            except OSError as exc:
+                logger.warning(
+                    "document_vector_indexing_transient_error "
+                    "task_id=%s document_id=%s "
+                    "organization_id=%s error_type=%s",
+                    task_id,
+                    document.id,
+                    document.organization_id,
+                    exc.__class__.__name__,
+                )
+                raise
+
             try:
                 await document_repository.mark_completed(
                     session=session,
                     document_id=document.id,
-                    extracted_text=extracted_text,
+                    extracted_text=extracted_document.text,
                 )
                 await session.commit()
                 logger.info(

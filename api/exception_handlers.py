@@ -12,9 +12,11 @@ from core.exceptions import (
     ConversationMemberRequiredError,
     ConversationNotFoundError,
     ConversationVersionConflictError,
+    DocumentContentInvalidError,
     DocumentEncodingInvalidError,
     DocumentFilenameRequiredError,
     DocumentNotFoundError,
+    DocumentSearchUnavailableError,
     DocumentStorageUnavailableError,
     DocumentTooLargeError,
     IdempotencyKeyConflictError,
@@ -138,6 +140,14 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
     DocumentStorageUnavailableError: HttpErrorDetails(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         code="document_storage_unavailable",
+    ),
+    DocumentContentInvalidError: HttpErrorDetails(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        code="document_content_invalid",
+    ),
+    DocumentSearchUnavailableError: HttpErrorDetails(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        code="document_search_unavailable",
     ),
 }
 

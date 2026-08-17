@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.enums import DocumentStatus
 
@@ -26,3 +26,31 @@ class DocumentRead(BaseModel):
 
 class DocumentDownloadRead(BaseModel):
     download_url: str
+
+
+class DocumentSearchRequest(BaseModel):
+    question: str = Field(
+        min_length=1,
+        max_length=1_000,
+    )
+    limit: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+    )
+
+
+class DocumentSearchCitationRead(BaseModel):
+    document_id: UUID
+    chunk_id: UUID
+    chunk_index: int
+    document_filename: str
+    page_start: int | None
+    page_end: int | None
+    score: float
+
+
+class DocumentSearchRead(BaseModel):
+    answer: str | None
+    answer_not_found: bool
+    citations: list[DocumentSearchCitationRead]

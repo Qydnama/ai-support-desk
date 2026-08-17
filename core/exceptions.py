@@ -106,5 +106,15 @@ class DocumentEncodingInvalidError(AppError):
     message = "Document must be valid UTF-8 text"
 
 
+class DocumentContentInvalidError(AppError):
+    message = (
+        "Document contents do not match its declared format."
+    )
+
+
 class DocumentStorageUnavailableError(AppError):
     message = "Document storage is temporarily unavailable"
+
+
+class DocumentSearchUnavailableError(AppError):
+    message = "Document search is temporarily unavailable"

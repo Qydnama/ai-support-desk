@@ -21,6 +21,7 @@ document-data/
 
 # Graphify: local cache, backups, machine-specific hook
 graphify-out/cache/
+graphify-out/graph.json
 graphify-out/20??-??-??/
 graphify-out/memory/
 graphify-out/reflections/
@@ -45,3 +46,13 @@ htmlcov/
 .hypothesis/
 *.log
 claude_code_logs.*
+
+# Local Graphify learning state
+graphify-out/.graphify_learning.json
+
+# Generated RAG evaluation reports
+evaluations/rag_baseline/results/
+
+# Personal manual PDF/DOCX files used only for local smoke tests
+evaluations/rag_baseline/corpus/*.pdf
+evaluations/rag_baseline/corpus/*.docx

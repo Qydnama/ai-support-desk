@@ -134,6 +134,16 @@ def test_upload_and_worker_use_real_minio(
             "engine",
             DisposableTestEngine(),
         )
+        monkeypatch.setattr(
+            document_processing,
+            "embed_document_texts",
+            lambda texts: [[0.1] for _ in texts],
+        )
+        monkeypatch.setattr(
+            document_processing,
+            "upsert_document_chunk_vectors",
+            lambda **_: None,
+        )
         asyncio.run(document_processing.process_document(document_id))
 
         processed_document = read_document(
@@ -161,6 +171,7 @@ def test_failed_postgresql_commit_deletes_minio_object(
     storage_key = create_document_storage_key(
         organization_id,
         document_id,
+        content_type="text/plain",
     )
     storage = get_document_storage()
     monkeypatch.setattr(

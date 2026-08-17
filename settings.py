@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -74,6 +74,31 @@ class Settings(BaseSettings):
         ge=1,
         le=10_485_760,
     )
+    document_pdf_max_pages: int = Field(
+        default=100,
+        ge=1,
+        le=1_000,
+    )
+    document_pdf_max_page_content_bytes: int = Field(
+        default=5_242_880,
+        ge=1,
+        le=52_428_800,
+    )
+    document_docx_max_paragraphs: int = Field(
+        default=10_000,
+        ge=1,
+        le=100_000,
+    )
+    document_docx_max_uncompressed_bytes: int = Field(
+        default=20_971_520,
+        ge=1,
+        le=104_857_600,
+    )
+    document_extracted_text_max_chars: int = Field(
+        default=1_000_000,
+        ge=1,
+        le=10_000_000,
+    )
     document_processing_stale_after_seconds: int = Field(
         default=600,
         ge=60,
@@ -84,6 +109,35 @@ class Settings(BaseSettings):
         ge=10,
         le=3_600,
     )
+    document_chunk_max_chars: int = Field(
+        default=1_200,
+        ge=100,
+        le=10_000,
+    )
+    document_chunk_overlap_chars: int = Field(
+        default=200,
+        ge=0,
+        le=2_000,
+    )
+    document_chunk_index_version: str = Field(
+        default="v2",
+        min_length=1,
+        max_length=64,
+    )
+    document_embedding_model: Literal["text-embedding-3-small"] = (
+        "text-embedding-3-small"
+    )
+    document_embedding_dimension: int = Field(
+        default=1_536,
+        ge=1,
+    )
+    openai_api_key: SecretStr
+    document_vector_collection_name: str = Field(
+        default="document_chunks_v2",
+        min_length=1,
+        max_length=255,
+    )
+    qdrant_url: str = "http://localhost:6333"
     outbox_publish_batch_size: int = Field(
         default=100,
         ge=1,
@@ -94,6 +148,35 @@ class Settings(BaseSettings):
         ge=1,
         le=3_600,
     )
+    document_search_score_threshold: float = Field(
+        default=0.1,
+        ge=-1.0,
+        le=1.0,
+    )
+    document_answer_model: Literal["gpt-5.6-luna"] = (
+        "gpt-5.6-luna"
+    )
+    document_answer_reasoning_effort: Literal["none", "low"] = (
+        "none"
+    )
+    document_answer_max_output_tokens: int = Field(
+        default=500,
+        ge=50,
+        le=2_000,
+    )
+    
 
+    @model_validator(mode="after")
+    def validate_document_chunk_settings(self) -> Self:
+        if (
+            self.document_chunk_overlap_chars
+            >= self.document_chunk_max_chars
+        ):
+            raise ValueError(
+                "document_chunk_overlap_chars must be smaller "
+                "than document_chunk_max_chars",
+            )
+
+        return self
 
 settings = Settings()

@@ -96,9 +96,9 @@ def test_document_processor_completes_once(
     test_engine = DisposableTestEngine()
     read_calls: list[str] = []
 
-    def read_text(key: str) -> str:
+    def read_bytes(key: str) -> bytes:
         read_calls.append(key)
-        return storage.read_text(key)
+        return storage.read_bytes(key)
 
     monkeypatch.setattr(
         document_processing,
@@ -113,7 +113,17 @@ def test_document_processor_completes_once(
     monkeypatch.setattr(
         document_processing,
         "get_document_storage",
-        lambda: SimpleNamespace(read_text=read_text),
+        lambda: SimpleNamespace(read_bytes=read_bytes),
+    )
+    monkeypatch.setattr(
+        document_processing,
+        "embed_document_texts",
+        lambda texts: [[0.1] for _ in texts],
+    )
+    monkeypatch.setattr(
+        document_processing,
+        "upsert_document_chunk_vectors",
+        lambda **_: None,
     )
     caplog.set_level(
         "INFO",
@@ -215,7 +225,7 @@ def test_document_processor_leaves_transient_storage_error_for_retry(
     )
     test_engine = DisposableTestEngine()
 
-    def read_text(_: str) -> str:
+    def read_bytes(_: str) -> bytes:
         raise OSError("temporary storage failure")
 
     monkeypatch.setattr(
@@ -231,7 +241,7 @@ def test_document_processor_leaves_transient_storage_error_for_retry(
     monkeypatch.setattr(
         document_processing,
         "get_document_storage",
-        lambda: SimpleNamespace(read_text=read_text),
+        lambda: SimpleNamespace(read_bytes=read_bytes),
     )
     caplog.set_level(
         "WARNING",

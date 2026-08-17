@@ -196,7 +196,7 @@ def test_upload_document_keeps_outbox_message_when_trigger_fails(
     assert outbox_message.published_at is None
 
 
-def test_upload_document_rejects_unsupported_content_type(
+def test_upload_document_rejects_invalid_pdf_content(
     client: TestClient,
     monkeypatch,
     tmp_path: Path,
@@ -216,9 +216,9 @@ def test_upload_document_rejects_unsupported_content_type(
         },
     )
 
-    assert response.status_code == 415
+    assert response.status_code == 422
     assert response.json()["code"] == (
-        "document_content_type_not_supported"
+        "document_content_invalid"
     )
     assert queued_tasks == []
     assert list(tmp_path.rglob("*")) == []
