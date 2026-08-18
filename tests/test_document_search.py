@@ -13,7 +13,7 @@ from models.organizations import Organization
 from models.users import User
 from services import document_search
 from services.document_answer_generation import (
-    DocumentAnswerGenerationUnavailableError,
+    DocumentAnswerGenerationValidationError,
     GeneratedDocumentAnswer,
     _validate_generated_answer,
 )
@@ -242,7 +242,7 @@ def test_answer_validation_rejects_unknown_citation() -> None:
     )
 
     with pytest.raises(
-        DocumentAnswerGenerationUnavailableError,
+        DocumentAnswerGenerationValidationError,
         match="unknown citation number",
     ):
         _validate_generated_answer(

@@ -16,6 +16,7 @@ from core.exceptions import (
     DocumentEncodingInvalidError,
     DocumentFilenameRequiredError,
     DocumentNotFoundError,
+    DocumentSearchAnswerInvalidError,
     DocumentSearchUnavailableError,
     DocumentStorageUnavailableError,
     DocumentTooLargeError,
@@ -148,6 +149,10 @@ HTTP_ERROR_DETAILS: dict[type[AppError], HttpErrorDetails] = {
     DocumentSearchUnavailableError: HttpErrorDetails(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         code="document_search_unavailable",
+    ),
+    DocumentSearchAnswerInvalidError: HttpErrorDetails(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        code="document_answer_invalid",
     ),
 }
 

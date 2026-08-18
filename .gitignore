@@ -56,3 +56,5 @@ evaluations/rag_baseline/results/
 # Personal manual PDF/DOCX files used only for local smoke tests
 evaluations/rag_baseline/corpus/*.pdf
 evaluations/rag_baseline/corpus/*.docx
+
+examples/

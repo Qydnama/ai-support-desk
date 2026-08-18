@@ -156,6 +156,9 @@ class Settings(BaseSettings):
     document_answer_model: Literal["gpt-5.6-luna"] = (
         "gpt-5.6-luna"
     )
+    document_answer_fallback_model: Literal["gpt-5.6-terra"] = (
+        "gpt-5.6-terra"
+    )
     document_answer_reasoning_effort: Literal["none", "low"] = (
         "none"
     )

@@ -1,31 +1,23 @@
 from collections.abc import Sequence
 
-from openai import (
-    APIConnectionError,
-    APITimeoutError,
-    InternalServerError,
-    OpenAI,
-    RateLimitError,
+from services.document_answer_provider import (
+    DocumentAnswerProviderInvalidResponseError,
+    DocumentAnswerProviderUnavailableError,
+    GeneratedDocumentAnswer,
+    request_document_answer,
 )
-from pydantic import BaseModel, Field
-
-from settings import settings
 
 
 class DocumentAnswerGenerationUnavailableError(OSError):
     """OpenAI temporarily cannot generate a document answer."""
 
 
-class GeneratedDocumentAnswer(BaseModel):
-    answer: str | None = Field(
-        default=None,
-        max_length=4_000,
-    )
-    answer_not_found: bool
-    citation_numbers: list[int] = Field(
-        default_factory=list,
-        max_length=20,
-    )
+class DocumentAnswerGenerationStructuredOutputError(Exception):
+    """The provider could not produce the required structured output."""
+
+
+class DocumentAnswerGenerationValidationError(Exception):
+    """The generated document answer violates business rules."""
 
 
 INSTRUCTIONS = """
@@ -49,6 +41,14 @@ Otherwise:
 """.strip()
 
 
+REPAIR_INSTRUCTIONS = (
+    f"{INSTRUCTIONS}\n\n"
+    "Your previous response did not satisfy the required structured "
+    "output. Return the same Pydantic schema exactly. Use only the "
+    "supplied sources and their valid citation numbers."
+)
+
+
 def generate_document_answer(
     *,
     question: str,
@@ -61,52 +61,53 @@ def generate_document_answer(
             citation_numbers=[],
         )
 
-    client = OpenAI(
-        api_key=settings.openai_api_key.get_secret_value(),
+    input_text = _build_input(
+        question=question,
+        source_texts=source_texts,
     )
 
     try:
-        response = client.responses.parse(
-            model=settings.document_answer_model,
+        return _generate_and_validate_document_answer(
             instructions=INSTRUCTIONS,
-            input=_build_input(
-                question=question,
-                source_texts=source_texts,
-            ),
-            text_format=GeneratedDocumentAnswer,
-            reasoning={
-                "effort": (
-                    settings.document_answer_reasoning_effort
-                ),
-            },
-            text={
-                "verbosity": "low",
-            },
-            max_output_tokens=(
-                settings.document_answer_max_output_tokens
-            ),
-            store=False,
+            input_text=input_text,
+            source_count=len(source_texts),
         )
-    except (
-        APIConnectionError,
-        APITimeoutError,
-        InternalServerError,
-        RateLimitError,
-    ) as error:
+    except DocumentAnswerGenerationStructuredOutputError:
+        return _generate_and_validate_document_answer(
+            instructions=REPAIR_INSTRUCTIONS,
+            input_text=input_text,
+            source_count=len(source_texts),
+        )
+
+
+def _generate_and_validate_document_answer(
+    *,
+    instructions: str,
+    input_text: str,
+    source_count: int,
+) -> GeneratedDocumentAnswer:
+    try:
+        generated_answer = request_document_answer(
+            instructions=instructions,
+            input_text=input_text,
+        )
+    except DocumentAnswerProviderUnavailableError as error:
         raise DocumentAnswerGenerationUnavailableError(
             "OpenAI answer generation is temporarily unavailable."
         ) from error
-
-    generated_answer = response.output_parsed
+    except DocumentAnswerProviderInvalidResponseError as error:
+        raise DocumentAnswerGenerationStructuredOutputError(
+            "OpenAI returned an invalid structured answer."
+        ) from error
 
     if generated_answer is None:
-        raise DocumentAnswerGenerationUnavailableError(
+        raise DocumentAnswerGenerationValidationError(
             "OpenAI returned no structured answer."
         )
 
     _validate_generated_answer(
         generated_answer=generated_answer,
-        source_count=len(source_texts),
+        source_count=source_count,
     )
 
     return generated_answer
@@ -145,7 +146,7 @@ def _validate_generated_answer(
             generated_answer.answer is not None
             or generated_answer.citation_numbers
         ):
-            raise DocumentAnswerGenerationUnavailableError(
+            raise DocumentAnswerGenerationValidationError(
                 "OpenAI returned an invalid abstention response."
             )
 
@@ -155,7 +156,7 @@ def _validate_generated_answer(
         not generated_answer.answer
         or not generated_answer.citation_numbers
     ):
-        raise DocumentAnswerGenerationUnavailableError(
+        raise DocumentAnswerGenerationValidationError(
             "OpenAI returned an answer without citations."
         )
 
@@ -164,6 +165,6 @@ def _validate_generated_answer(
         or citation_number > source_count
         for citation_number in generated_answer.citation_numbers
     ):
-        raise DocumentAnswerGenerationUnavailableError(
+        raise DocumentAnswerGenerationValidationError(
             "OpenAI returned an unknown citation number."
         )

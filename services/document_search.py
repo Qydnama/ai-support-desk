@@ -4,10 +4,16 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.exceptions import DocumentSearchUnavailableError
+from core.exceptions import (
+    DocumentSearchAnswerInvalidError,
+    DocumentSearchUnavailableError,
+)
 from models.document_chunks import DocumentChunk
 from repositories import document_chunks as document_chunk_repository
 from services.document_answer_generation import (
+    DocumentAnswerGenerationStructuredOutputError,
+    DocumentAnswerGenerationUnavailableError,
+    DocumentAnswerGenerationValidationError,
     generate_document_answer,
 )
 from services.document_embeddings import embed_document_texts
@@ -103,8 +109,13 @@ async def search_documents(
                 for chunk, _ in ordered_chunks
             ],
         )
-    except OSError as exc:
-        raise DocumentSearchUnavailableError() from exc
+    except DocumentAnswerGenerationUnavailableError as error:
+        raise DocumentSearchUnavailableError() from error
+    except (
+        DocumentAnswerGenerationStructuredOutputError,
+        DocumentAnswerGenerationValidationError,
+    ) as error:
+        raise DocumentSearchAnswerInvalidError() from error
 
     if generated_answer.answer_not_found:
         return DocumentSearchResult(

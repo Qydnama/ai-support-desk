@@ -118,3 +118,7 @@ class DocumentStorageUnavailableError(AppError):
 
 class DocumentSearchUnavailableError(AppError):
     message = "Document search is temporarily unavailable"
+
+
+class DocumentSearchAnswerInvalidError(AppError):
+    message = "Document answer generation returned an invalid response"
